@@ -1,0 +1,7 @@
+name: UltPerms
+version: '${project.version}'
+main: net.marakaner.ultperms.UltPerms
+api-version: 1.19
+authors: [ Marakaner ]
+description: This is the test project for PlayLegend.net
+website: marakaner.net
