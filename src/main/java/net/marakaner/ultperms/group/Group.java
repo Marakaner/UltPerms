@@ -17,4 +17,9 @@ public class Group {
     private ChatColor displayColor;
     private List<String> permission;
     private int priority;
+    private int tabPriority;
+
+    protected void setPermission(List<String> permission) {
+        this.permission = permission;
+    }
 }
