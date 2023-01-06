@@ -27,10 +27,12 @@ public class PermissionPlayer {
     public PermissionPlayer(UUID uniqueId) {
         this.uniqueId = uniqueId;
         this.attachment = Bukkit.getPlayer(uniqueId).addAttachment(UltPerms.getInstance());
-        setPermission();
+        identifyHighestPermissionGroup();
     }
 
-    private void setPermission() {
+    public void setGroups(List<String> groups) {
+        this.groups = groups;
+
         for(String perms : permission) {
             attachment.setPermission(perms, true);
         }
@@ -44,7 +46,18 @@ public class PermissionPlayer {
         }
     }
 
-    public Group getHighestGroup() {
+    public void addPermission(List<String> permission) {
+        permission.forEach(perm -> attachment.setPermission(perm, true));
+    }
+    public void addPermission(String permission) {
+        attachment.setPermission(permission, true);
+    }
+
+    public void removePermission(String permission) {
+        attachment.unsetPermission(permission);
+    }
+
+    public void identifyHighestPermissionGroup() {
         Group highestGroup = groupManager.getGroupByIdentifier(groups.get(0));
 
         if(groups.size() > 1) {
@@ -58,7 +71,7 @@ public class PermissionPlayer {
             }
         }
 
-        return highestGroup;
+        this.highestPermissionGroup = highestGroup;
     }
 
 

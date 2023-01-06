@@ -3,9 +3,9 @@ package net.marakaner.ultperms.database;
 import net.marakaner.ultperms.UltPerms;
 import org.bukkit.Bukkit;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -32,13 +32,13 @@ public class DatabaseManager {
 
         System.out.println("Init database connect");
 
-        File folder = new File("UltPerms");
+        File folder = new File("plugins/UltPerms");
 
         if(!folder.exists()) {
             folder.mkdir();
         }
 
-        File file = new File("UltPerms/mysql.json");
+        File file = new File("plugins/UltPerms/mysql.json");
 
         DatabaseConfig databaseConfig = null;
 
@@ -53,7 +53,14 @@ public class DatabaseManager {
 
             return;
         } else {
-            databaseConfig = UltPerms.getInstance().getGson().fromJson(file.getPath(), DatabaseConfig.class);
+
+            try {
+                Reader reader = Files.newBufferedReader(file.toPath());
+                databaseConfig = UltPerms.getInstance().getGson().fromJson(reader, DatabaseConfig.class);
+                reader.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         if(!isConnected() && databaseConfig != null) {

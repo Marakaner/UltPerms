@@ -6,7 +6,10 @@ import lombok.Getter;
 import net.marakaner.ultperms.database.DatabaseManager;
 import net.marakaner.ultperms.group.GroupManager;
 import net.marakaner.ultperms.permission.PermissionManager;
+import net.marakaner.ultperms.player.PlayerManager;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.ArrayList;
 
 public final class UltPerms extends JavaPlugin {
 
@@ -23,6 +26,9 @@ public final class UltPerms extends JavaPlugin {
     @Getter
     private GroupManager groupManager;
 
+    @Getter
+    private PlayerManager playerManager;
+
 
     // Creating a private instance for Gson
     @Getter
@@ -35,6 +41,7 @@ public final class UltPerms extends JavaPlugin {
         this.databaseManager = new DatabaseManager();
         this.permissionManager = new PermissionManager(this.databaseManager);
         this.groupManager = new GroupManager(this.permissionManager);
+        this.playerManager = new PlayerManager(this.groupManager, this.permissionManager);
 
     }
 

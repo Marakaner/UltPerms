@@ -64,20 +64,6 @@ public class PermissionManager {
                     }
                 }
 
-                try {
-                    ps = databaseManager.getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS player_groups(uuid VARCHAR(100) PRIMARY KEY, groups MEDIUMTEXT)");
-                    ps.executeUpdate();
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    try {
-                        ps.close();
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-
-
             }
         }.runTaskAsynchronously(UltPerms.getInstance());
 
@@ -162,6 +148,10 @@ public class PermissionManager {
         }
 
         return null;
+    }
+
+    public boolean isPlayerExisting(UUID uuid) {
+
     }
 
 }

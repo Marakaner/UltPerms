@@ -2,6 +2,7 @@ package net.marakaner.ultperms.group;
 
 import com.google.common.reflect.TypeToken;
 import net.marakaner.ultperms.UltPerms;
+import net.marakaner.ultperms.database.DatabaseConfig;
 import net.marakaner.ultperms.permission.PermissionManager;
 import org.bukkit.ChatColor;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -9,6 +10,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -16,7 +19,7 @@ import java.util.List;
 public class GroupManager {
 
     private final PermissionManager permissionManager;
-    private List<Group> groups;
+    private List<Group> groups = new ArrayList<>();
 
     public GroupManager(PermissionManager permissionManager) {
         loadConfig();
@@ -35,17 +38,25 @@ public class GroupManager {
 
 
         if(groupConfig.exists()) {
-            List<Group> tempGroups = UltPerms.getInstance().getGson().fromJson(groupConfig.getPath(), new TypeToken<List<Group>>(){}.getType());
+
+            List<Group> loadedGroups;
+            try {
+                Reader reader = Files.newBufferedReader(groupConfig.toPath());
+                loadedGroups = UltPerms.getInstance().getGson().fromJson(reader, new TypeToken<List<Group>>(){}.getType());
+                reader.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
 
 
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    for(Group group : groups) {
+                    for(Group group : loadedGroups) {
                         group.setPermission(permissionManager.getGroupPermission(group.getIdentifier()));
                     }
 
-                    groups = tempGroups;
+                    groups = loadedGroups;
                 }
             }.runTaskAsynchronously(UltPerms.getInstance());
 
@@ -64,8 +75,8 @@ public class GroupManager {
 
         groups = new ArrayList<>();
 
-        Group adminGroup = new Group("admin", "§4Admin", "§4A §8| ", "§4Admin §8| ", ChatColor.DARK_RED, Arrays.asList("*"), 10, 0);
-        Group defaultGroup = new Group("default", "§7Default", "§7", "§7", ChatColor.GRAY, Arrays.asList(""), 10, 0);
+        Group adminGroup = new Group("admin", "§4Admin", "§4A §8| ", "§4Admin §8| ", ChatColor.DARK_RED, null, 10, 0);
+        Group defaultGroup = new Group("default", "§7Default", "§7", "§7", ChatColor.GRAY, null, 10, 0);
 
         this.groups.add(adminGroup);
         this.groups.add(defaultGroup);
