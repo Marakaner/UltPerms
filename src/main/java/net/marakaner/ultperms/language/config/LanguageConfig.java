@@ -2,13 +2,15 @@ package net.marakaner.ultperms.language.config;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import net.marakaner.ultperms.language.Language;
 
-import java.util.HashMap;
+import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
 public class LanguageConfig {
 
-    public String language;
-    public HashMap<String, String> messages;
+    public String prefix;
+    public List<Language> languages;
+
 }

@@ -1,15 +1,15 @@
 package net.marakaner.ultperms.player;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 import net.marakaner.ultperms.UltPerms;
 import net.marakaner.ultperms.group.Group;
 import net.marakaner.ultperms.group.GroupManager;
 import org.bukkit.Bukkit;
 import org.bukkit.permissions.PermissionAttachment;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Getter
 public class PermissionPlayer {
@@ -18,8 +18,9 @@ public class PermissionPlayer {
 
     private UUID uniqueId;
     private List<String> permission = new ArrayList<>();
-    private List<String> groups = new ArrayList<>();
+    private Map<String, Long> groups = new HashMap<>();
 
+    @Setter
     private String language;
 
     private PermissionAttachment attachment;
@@ -32,14 +33,14 @@ public class PermissionPlayer {
         identifyHighestPermissionGroup();
     }
 
-    public void setGroups(List<String> groups) {
+    public void setGroups(Map<String, Long> groups) {
         this.groups = groups;
 
         for(String perms : permission) {
             attachment.setPermission(perms, true);
         }
 
-        for(String group : groups) {
+        for(String group : groups.keySet()) {
             Group currentGroup = groupManager.getGroupByIdentifier(group);
 
             for(String perms : currentGroup.getPermission()) {

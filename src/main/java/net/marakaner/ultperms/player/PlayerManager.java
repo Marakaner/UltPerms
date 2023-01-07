@@ -25,27 +25,17 @@ public class PlayerManager {
     //Loading player and register him in the cache
 
     public void registerPlayer(UUID uniqueId, Consumer<PermissionPlayer> succeed) {
-
-        PermissionPlayer permissionPlayer = new PermissionPlayer(uniqueId);
-
         new BukkitRunnable() {
             @Override
             public void run() {
+                PermissionPlayer permissionPlayer = permissionManager.getPlayer(uniqueId);
 
-                List<String> permission = permissionManager.getPlayerPermission(uniqueId);
+                if(permissionPlayer == null) {
 
-                if(permission == null) {
+                    permissionPlayer = new PermissionPlayer()
 
-                    PermissionPlayer newPlayer = new PermissionPlayer(uniqueId);
-                    newPlayer.setGroups(Arrays.asList(groupManager.getDefaultGroup().getIdentifier()));
-
-
+                    permissionManager.registerPlayer();
                 } else {
-
-                    List<String> groups = permissionManager.getPlayerGroups(uniqueId);
-
-                    permissionPlayer.setGroups(groups);
-                    permissionPlayer.addPermission(permission);
                     players.put(uniqueId, permissionPlayer);
                     succeed.accept(permissionPlayer);
                 }
@@ -65,16 +55,7 @@ public class PlayerManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                PermissionPlayer permissionPlayer = players.get(uniqueId);
-
-                if(permissionPlayer != null) {
-                    consumer.accept(permissionPlayer);
-                } else {
-
-                    permissionPlayer = new PermissionPlayer(uniqueId);
-                    permissionPlayer.setGroups(permissionManager.getPlayerGroups(uniqueId));
-                    permissionPlayer.addPermission(permissionManager.getPlayerPermission(uniqueId));
-                }
+                consumer.accept(permissionManager.getPlayer(uniqueId));
             }
         }.runTaskAsynchronously(UltPerms.getInstance());
 

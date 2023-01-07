@@ -3,6 +3,7 @@ package net.marakaner.ultperms.permission;
 import com.google.common.reflect.TypeToken;
 import net.marakaner.ultperms.UltPerms;
 import net.marakaner.ultperms.database.DatabaseManager;
+import net.marakaner.ultperms.language.Language;
 import net.marakaner.ultperms.player.PermissionPlayer;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -11,6 +12,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -150,14 +152,60 @@ public class PermissionManager {
         return null;
     }
 
-    public String g
+    public PermissionPlayer getPlayer(UUID uuid) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
 
-    public void registerPlayer(UUID uuid) {
+        try {
+            ps = databaseManager.getConnection().prepareStatement("SELECT * FROM player_permission WHERE uuid=?");
+            ps.setString(1, uuid.toString());
+            rs = ps.executeQuery();
+            if(rs.next()) {
 
+                List<String> permission = UltPerms.getInstance().getGson().fromJson(rs.getString("permission"), type);
+                List<String> groups = UltPerms.getInstance().getGson().fromJson(rs.getString("group"), type);
+                String language = rs.getString("language");
+
+                PermissionPlayer permissionPlayer = new PermissionPlayer(uuid);
+                permissionPlayer.setGroups(groups);
+                permissionPlayer.addPermission(permission);
+                permissionPlayer.setLanguage(language);
+
+                return permissionPlayer;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                ps.close();
+                rs.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return null;
+    }
+
+    public void registerPlayer(PermissionPlayer permissionPlayer) {
         PreparedStatement ps = null;
 
-        ps = databaseManager.getConnection().prepareStatement("INSERT INTO player_info () VALUES (?,?,?)")
-
+        try {
+            ps = databaseManager.getConnection().prepareStatement("INSERT INTO player_permission(uuid, permission, groups, language) VALUES (?,?,?,?)");
+            ps.setString(1, permissionPlayer.getUniqueId().toString());
+            ps.setString(2, UltPerms.getInstance().getGson().toJson(permissionPlayer.getPermission()));
+            ps.setString(3, UltPerms.getInstance().getGson().toJson(permissionPlayer.getGroups()));
+            ps.setString(4, UltPerms.getInstance().getGson().toJson(permissionPlayer.getLanguage()));
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                ps.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
 }
