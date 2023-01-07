@@ -75,8 +75,8 @@ public class GroupManager {
 
         groups = new ArrayList<>();
 
-        Group adminGroup = new Group("admin", "§4Admin", "§4A §8| ", "§4Admin §8| ", ChatColor.DARK_RED, null, 10, 0);
-        Group defaultGroup = new Group("default", "§7Default", "§7", "§7", ChatColor.GRAY, null, 10, 0);
+        Group adminGroup = new Group("admin", "§4Admin", "§4A §8| ", "§4Admin §8| ", ChatColor.DARK_RED, null, 10, 0, false);
+        Group defaultGroup = new Group("default", "§7Default", "§7", "§7", ChatColor.GRAY, null, 10, 0, true);
 
         this.groups.add(adminGroup);
         this.groups.add(defaultGroup);
@@ -90,6 +90,10 @@ public class GroupManager {
 
     public Group getGroupByIdentifier(String identifier) {
         return groups.stream().filter(group -> group.getIdentifier().equals(identifier)).findFirst().get();
+    }
+
+    public Group getDefaultGroup() {
+        return groups.stream().filter(Group::isDefaultGroup).findFirst().get();
     }
 
 }

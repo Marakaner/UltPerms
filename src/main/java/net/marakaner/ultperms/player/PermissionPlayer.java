@@ -20,6 +20,8 @@ public class PermissionPlayer {
     private List<String> permission = new ArrayList<>();
     private List<String> groups = new ArrayList<>();
 
+    private String language;
+
     private PermissionAttachment attachment;
 
     private Group highestPermissionGroup;

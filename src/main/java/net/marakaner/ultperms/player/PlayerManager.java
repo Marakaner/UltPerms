@@ -6,10 +6,7 @@ import net.marakaner.ultperms.permission.PermissionManager;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.security.Permission;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 
 public class PlayerManager {
@@ -34,10 +31,24 @@ public class PlayerManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                permissionPlayer.setGroups(permissionManager.getPlayerGroups(uniqueId));
-                permissionPlayer.addPermission(permissionManager.getPlayerPermission(uniqueId));
-                players.put(uniqueId, permissionPlayer);
-                succeed.accept(permissionPlayer);
+
+                List<String> permission = permissionManager.getPlayerPermission(uniqueId);
+
+                if(permission == null) {
+
+                    PermissionPlayer newPlayer = new PermissionPlayer(uniqueId);
+                    newPlayer.setGroups(Arrays.asList(groupManager.getDefaultGroup().getIdentifier()));
+
+
+                } else {
+
+                    List<String> groups = permissionManager.getPlayerGroups(uniqueId);
+
+                    permissionPlayer.setGroups(groups);
+                    permissionPlayer.addPermission(permission);
+                    players.put(uniqueId, permissionPlayer);
+                    succeed.accept(permissionPlayer);
+                }
             }
         }.runTaskAsynchronously(UltPerms.getInstance());
     }

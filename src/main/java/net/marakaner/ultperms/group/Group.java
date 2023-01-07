@@ -18,6 +18,7 @@ public class Group {
     private List<String> permission;
     private int priority;
     private int tabPriority;
+    private boolean defaultGroup;
 
     protected void setPermission(List<String> permission) {
         this.permission = permission;

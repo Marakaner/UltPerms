@@ -52,7 +52,7 @@ public class PermissionManager {
 
 
                 try {
-                    ps = databaseManager.getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS player_permission(uuid VARCHAR(100) PRIMARY KEY, permission MEDIUMTEXT, groups MEDIUMTEXT)");
+                    ps = databaseManager.getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS player_permission(uuid VARCHAR(100) PRIMARY KEY, permission MEDIUMTEXT, groups MEDIUMTEXT, language VARCHAR(100))");
                     ps.executeUpdate();
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
@@ -150,7 +150,13 @@ public class PermissionManager {
         return null;
     }
 
-    public boolean isPlayerExisting(UUID uuid) {
+    public String g
+
+    public void registerPlayer(UUID uuid) {
+
+        PreparedStatement ps = null;
+
+        ps = databaseManager.getConnection().prepareStatement("INSERT INTO player_info () VALUES (?,?,?)")
 
     }
 
