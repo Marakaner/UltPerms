@@ -11,10 +11,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.lang.reflect.Type;
+import java.security.Permission;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class PlayerManager {
@@ -56,19 +58,46 @@ public class PlayerManager {
         }
     }
 
-    public Group getHighestPermissionGroup(UUID uniqueId) {
-        PermissionPlayer permissionPlayer = getCachedPlayer(uniqueId);
+    public void getHighestPermissionGroup(UUID uniqueId, Consumer<Group> groupConsumer) {
+        getPermissionPlayer(uniqueId, permissionPlayer -> {
+            Group lowestGroup = null;
 
-        Group lowestGroup = null;
-
-        for(String identifier : permissionPlayer.getGroups().keySet()) {
-            Group group = groupManager.getGroup(identifier);
-            if(lowestGroup == null || lowestGroup.getPriority() < group.getPriority()) {
-                lowestGroup = group;
+            for(String identifier : permissionPlayer.getGroups().keySet()) {
+                Group group = groupManager.getGroup(identifier);
+                if(lowestGroup == null || lowestGroup.getPriority() < group.getPriority()) {
+                    lowestGroup = group;
+                }
             }
-        }
+        });
+    }
 
-        return lowestGroup;
+    public void getRemainingGroupTime(UUID uniqueId, String groupIdentifier, Consumer<Long> remainingTime) {
+        getPermissionPlayer(uniqueId, permissionPlayer -> {
+            remainingTime.accept(permissionPlayer.getGroups().get(groupIdentifier) - System.currentTimeMillis());
+        });
+    }
+
+    public void getRemainingGroupTimeInDays(UUID uniqueId, String groupIdentifier, Consumer<Long> remainingTime) {
+        getRemainingGroupTime(uniqueId, groupIdentifier, time -> {
+            remainingTime.accept(TimeUnit.MILLISECONDS.toDays(time));
+        });
+    }
+
+    public void getRemainingGroupTimeInMinutes(UUID uniqueId, String groupIdentifier, Consumer<Long> remainingTime) {
+        getRemainingGroupTime(uniqueId, groupIdentifier, time -> {
+            long days = TimeUnit.MILLISECONDS.toDays(time);
+            long minutes = TimeUnit.MILLISECONDS.toMinutes(time - TimeUnit.DAYS.toMillis(days));
+            remainingTime.accept(minutes);
+        });
+    }
+
+    public void getRemainingGroupTimeInSeconds(UUID uniqueId, String groupIdentifier, Consumer<Long> remainingTime) {
+        getRemainingGroupTime(uniqueId, groupIdentifier, time -> {
+            long days = TimeUnit.MILLISECONDS.toDays(time);
+            long minutes = TimeUnit.MILLISECONDS.toMinutes(time - TimeUnit.DAYS.toMillis(days));
+            long seconds = TimeUnit.MILLISECONDS.toSeconds(time - TimeUnit.MINUTES.toMillis(minutes) - TimeUnit.DAYS.toMillis(days));
+            remainingTime.accept(seconds);
+        });
     }
 
     public void addGroup(UUID uniqueId, String groupIdentifier, Long timestamp, Consumer<Boolean> consumer) {
@@ -171,11 +200,11 @@ public class PlayerManager {
         }.runTaskAsynchronously(UltPerms.getInstance());
     }
 
-    public PermissionPlayer getCachedPlayer(UUID uniqueId) {
+    private PermissionPlayer getCachedPlayer(UUID uniqueId) {
         return permissionPlayers.getOrDefault(uniqueId, null);
     }
 
-    private boolean isOnline(UUID uniqueId) {
+    public boolean isOnline(UUID uniqueId) {
         return Bukkit.getPlayer(uniqueId) != null;
     }
 
@@ -234,32 +263,36 @@ public class PlayerManager {
         }
     }
 
-    public PermissionPlayer getPermissionPlayer(UUID uuid) {
-        PreparedStatement ps = null;
-        ResultSet rs = null;
+    public void getPermissionPlayer(UUID uuid, Consumer<PermissionPlayer> playerConsumer) {
 
-        try {
-            ps = databaseManager.getConnection().prepareStatement("SELECT * FROM player_info WHERE uuid=?");
-            ps.setString(1, uuid.toString());
-            rs = ps.executeQuery();
-            if(rs.next()) {
-                PermissionPlayer permissionPlayer = new PermissionPlayer(UUID.fromString(rs.getString("uuid")));
+        if(isOnline(uuid)) {
+            playerConsumer.accept(getCachedPlayer(uuid));
+        } else {
 
-                permissionPlayer.setName(rs.getString("name"));
-                permissionPlayer.setGroups(gson.fromJson(rs.getString("groups"), groupMapType));
-                permissionPlayer.setPermissions(gson.fromJson(rs.getString("permission"), stringListType));
-                permissionPlayer.setLanguage(rs.getString("language"));
+            PreparedStatement ps = null;
+            ResultSet rs = null;
 
-                return permissionPlayer;
+            try {
+                ps = databaseManager.getConnection().prepareStatement("SELECT * FROM player_info WHERE uuid=?");
+                ps.setString(1, uuid.toString());
+                rs = ps.executeQuery();
+                if (rs.next()) {
+                    PermissionPlayer permissionPlayer = new PermissionPlayer(UUID.fromString(rs.getString("uuid")));
+
+                    permissionPlayer.setName(rs.getString("name"));
+                    permissionPlayer.setGroups(gson.fromJson(rs.getString("groups"), groupMapType));
+                    permissionPlayer.setPermissions(gson.fromJson(rs.getString("permission"), stringListType));
+                    permissionPlayer.setLanguage(rs.getString("language"));
+
+                    playerConsumer.accept(permissionPlayer);
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
             }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
         }
-
-        return null;
     }
 
-    public void updatePlayer(PermissionPlayer permissionPlayer) {
+    private void updatePlayer(PermissionPlayer permissionPlayer) {
         new BukkitRunnable() {
             @Override
             public void run() {
