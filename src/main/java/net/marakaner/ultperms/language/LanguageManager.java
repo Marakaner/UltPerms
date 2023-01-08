@@ -57,11 +57,18 @@ public class LanguageManager {
     private void generateDefaultGermanMessagesConfig(File file) {
         IDocument document = new JsonDocument();
 
-        document.append("utils.wrong_usage", "§cDu hast den Befehl falsch eingegeben!");
+        document.append("utils.wrong_usage", "&cDu hast den Befehl falsch eingegeben!");
+        document.append("utils.no_permission", "&cDu hast dafür keine Berechtigungen!");
+        document.append("utils.player_not_found", "§cDieser Spieler konnte nicht gefunden werden!");
+
         document.append("command.rank.output", "&7Du hast den Rang %group_color%%group_name% noch für &e%group_days% Tage");
 
-        document.append("command.help.first", "&5UltPerms &7- &5Befehlshilfe");
-        document.append("command.help.second", "");
+
+        document.append("command.ultperms.helpmap.first", "&5UltPerms &8- &7Hilfe");
+        document.append("command.ultperms.helpmap.second", "&a/ultperms user [Name] &7- &7Zeige dir Informationen über einen Spieler an.");
+        document.append("command.ultperms.helpmap.third", "&a/ultperms user [Name]");
+
+        document.append("")
 
         document.write(file);
     }

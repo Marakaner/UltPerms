@@ -24,11 +24,11 @@ public class TestCommand implements CommandExecutor {
             });
         } else if(args.length == 1) {
 
-            PermissionPlayer permissionPlayer = UltPerms.getInstance().getPlayerManager().getCachedPlayer(player.getUniqueId());
-
-            for(String all : permissionPlayer.getAttachment().getPermissions().keySet()) {
-                player.sendMessage(all);
-            }
+            UltPerms.getInstance().getPlayerManager().getPermissionPlayer(player.getUniqueId(), permissionPlayer -> {
+                for(String all : permissionPlayer.getAttachment().getPermissions().keySet()) {
+                    player.sendMessage(all);
+                }
+            });
 
         }
 

@@ -204,8 +204,20 @@ public class PlayerManager {
         return permissionPlayers.getOrDefault(uniqueId, null);
     }
 
+    private PermissionPlayer getCachedPlayer(String name) {
+        for(PermissionPlayer all : this.permissionPlayers.values()) {
+            if(all.getName().equalsIgnoreCase(name)) {
+                return all;
+            }
+        }
+    }
+
     public boolean isOnline(UUID uniqueId) {
         return Bukkit.getPlayer(uniqueId) != null;
+    }
+
+    public boolean isOnline(String name) {
+        return Bukkit.getPlayer(name) != null;
     }
 
     public void registerPlayer(Player player, Consumer<PermissionPlayer> consumer) {
@@ -275,6 +287,34 @@ public class PlayerManager {
             try {
                 ps = databaseManager.getConnection().prepareStatement("SELECT * FROM player_info WHERE uuid=?");
                 ps.setString(1, uuid.toString());
+                rs = ps.executeQuery();
+                if (rs.next()) {
+                    PermissionPlayer permissionPlayer = new PermissionPlayer(UUID.fromString(rs.getString("uuid")));
+
+                    permissionPlayer.setName(rs.getString("name"));
+                    permissionPlayer.setGroups(gson.fromJson(rs.getString("groups"), groupMapType));
+                    permissionPlayer.setPermissions(gson.fromJson(rs.getString("permission"), stringListType));
+                    permissionPlayer.setLanguage(rs.getString("language"));
+
+                    playerConsumer.accept(permissionPlayer);
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void getPermissionPlayer(String name, Consumer<PermissionPlayer> playerConsumer) {
+        if(isOnline(name)) {
+            playerConsumer.accept(getCachedPlayer(name));
+        } else {
+
+            PreparedStatement ps = null;
+            ResultSet rs = null;
+
+            try {
+                ps = databaseManager.getConnection().prepareStatement("SELECT * FROM player_info WHERE lower_name=?");
+                ps.setString(1, name.toLowerCase());
                 rs = ps.executeQuery();
                 if (rs.next()) {
                     PermissionPlayer permissionPlayer = new PermissionPlayer(UUID.fromString(rs.getString("uuid")));
