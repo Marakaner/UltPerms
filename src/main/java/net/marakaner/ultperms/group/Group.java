@@ -1,26 +1,36 @@
 package net.marakaner.ultperms.group;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import com.google.gson.annotations.Expose;
+import lombok.*;
 import org.bukkit.ChatColor;
 
+import java.util.ArrayList;
 import java.util.List;
 
-@AllArgsConstructor
 @Getter
+@AllArgsConstructor
+@Setter(AccessLevel.PROTECTED)
 public class Group {
-
+    @Expose
     private String identifier;
-    private String display;
+    @Expose
+    private String displayName;
+    @Expose
+    private ChatColor color;
+    @Expose
     private String tabPrefix;
+    @Expose
     private String chatPrefix;
-    private ChatColor displayColor;
-    private List<String> permission;
-    private int priority;
-    private int tabPriority;
+    @Expose
     private boolean defaultGroup;
+    @Expose
+    private int tabPriority;
+    @Expose
+    private int priority;
 
-    protected void setPermission(List<String> permission) {
-        this.permission = permission;
+    private List<String> permission;
+
+    public List<String> getPermission() {
+        return new ArrayList<>(permission);
     }
 }

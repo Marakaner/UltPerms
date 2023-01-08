@@ -1,66 +1,311 @@
 package net.marakaner.ultperms.player;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import net.marakaner.ultperms.UltPerms;
+import net.marakaner.ultperms.database.DatabaseManager;
+import net.marakaner.ultperms.group.Group;
 import net.marakaner.ultperms.group.GroupManager;
-import net.marakaner.ultperms.permission.PermissionManager;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.security.Permission;
+import java.lang.reflect.Type;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Consumer;
 
 public class PlayerManager {
 
+    private final Type stringListType = new TypeToken<List<String>>() {}.getType();
+    private final Type groupMapType = new TypeToken<Map<String, Long>>() {}.getType();
+    private final Gson gson = UltPerms.getInstance().getGson();
+    private final DatabaseManager databaseManager;
     private final GroupManager groupManager;
-    private final PermissionManager permissionManager;
 
-    private final Map<UUID, PermissionPlayer> players;
+    private final Map<UUID, PermissionPlayer> permissionPlayers = new HashMap<>();
 
-    public PlayerManager(GroupManager groupManager, PermissionManager permissionManager) {
+    public PlayerManager(DatabaseManager databaseManager, GroupManager groupManager, Consumer<Boolean> finished) {
+        this.databaseManager = databaseManager;
         this.groupManager = groupManager;
-        this.permissionManager = permissionManager;
-        this.players = new HashMap<>();
-    }
-
-    //Loading player and register him in the cache
-
-    public void registerPlayer(UUID uniqueId, Consumer<PermissionPlayer> succeed) {
         new BukkitRunnable() {
             @Override
             public void run() {
-                PermissionPlayer permissionPlayer = permissionManager.getPlayer(uniqueId);
+                createTables();
+                finished.accept(true);
+            }
+        }.runTaskAsynchronously(UltPerms.getInstance());
+    }
+
+    private void createTables() {
+        PreparedStatement ps = null;
+
+        try {
+            ps = databaseManager.getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS player_info(uuid VARCHAR(100), name VARCHAR(100), lower_name VARCHAR(100), permission MEDIUMTEXT, groups MEDIUMTEXT, language VARCHAR(100))");
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                ps.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public Group getHighestPermissionGroup(UUID uniqueId) {
+        PermissionPlayer permissionPlayer = getCachedPlayer(uniqueId);
+
+        Group lowestGroup = null;
+
+        for(String identifier : permissionPlayer.getGroups().keySet()) {
+            Group group = groupManager.getGroup(identifier);
+            if(lowestGroup == null || lowestGroup.getPriority() < group.getPriority()) {
+                lowestGroup = group;
+            }
+        }
+
+        return lowestGroup;
+    }
+
+    public void addGroup(UUID uniqueId, String groupIdentifier, Long timestamp, Consumer<Boolean> consumer) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                PermissionPlayer permissionPlayer;
+                boolean online = isOnline(uniqueId);
+
+                if(online) {
+                    permissionPlayer = getCachedPlayer(uniqueId);
+                } else {
+                    permissionPlayer = getPermissionPlayer(uniqueId);
+                }
+
+                Map<String, Long> groups = permissionPlayer.getGroups();
+                groups.put(groupIdentifier, timestamp);
+                permissionPlayer.setGroups(groups);
+                updatePlayer(permissionPlayer);
+
+                if(online) applyPermission(permissionPlayer);
+
+                consumer.accept(true);
+            }
+        }.runTaskAsynchronously(UltPerms.getInstance());
+    }
+
+    public void removeGroup(UUID uniqueId, String groupIdentifier, Consumer<Boolean> consumer) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                PermissionPlayer permissionPlayer;
+                boolean online = isOnline(uniqueId);
+
+                if(online) {
+                    permissionPlayer = getCachedPlayer(uniqueId);
+                } else {
+                    permissionPlayer = getPermissionPlayer(uniqueId);
+                }
+
+                Map<String, Long> groups = permissionPlayer.getGroups();
+                groups.remove(groupIdentifier);
+                permissionPlayer.setGroups(groups);
+                updatePlayer(permissionPlayer);
+
+                if(online) applyPermission(permissionPlayer);
+
+                consumer.accept(true);
+            }
+        }.runTaskAsynchronously(UltPerms.getInstance());
+    }
+
+    public void addPermission(UUID uniqueId, String permission, Consumer<Boolean> consumer) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                PermissionPlayer permissionPlayer;
+                boolean online = isOnline(uniqueId);
+
+                if(online) {
+                    permissionPlayer = getCachedPlayer(uniqueId);
+                } else {
+                    permissionPlayer = getPermissionPlayer(uniqueId);
+                }
+
+                List<String> playerPermissions = permissionPlayer.getPermissions();
+                playerPermissions.add(permission.toLowerCase());
+                permissionPlayer.setPermissions(playerPermissions);
+                updatePlayer(permissionPlayer);
+
+                if(online) applyPermission(permissionPlayer);
+
+                consumer.accept(true);
+            }
+        }.runTaskAsynchronously(UltPerms.getInstance());
+    }
+
+    public void removePermission(UUID uniqueId, String permission, Consumer<Boolean> consumer) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                PermissionPlayer permissionPlayer;
+                boolean online = isOnline(uniqueId);
+
+                if(online) {
+                    permissionPlayer = getCachedPlayer(uniqueId);
+                } else {
+                    permissionPlayer = getPermissionPlayer(uniqueId);
+                }
+
+                List<String> playerPermissions = permissionPlayer.getPermissions();
+                playerPermissions.remove(permission.toLowerCase());
+                permissionPlayer.setPermissions(playerPermissions);
+                updatePlayer(permissionPlayer);
+
+                if(online) applyPermission(permissionPlayer);
+
+                consumer.accept(true);
+            }
+        }.runTaskAsynchronously(UltPerms.getInstance());
+    }
+
+    public PermissionPlayer getCachedPlayer(UUID uniqueId) {
+        return permissionPlayers.getOrDefault(uniqueId, null);
+    }
+
+    private boolean isOnline(UUID uniqueId) {
+        return Bukkit.getPlayer(uniqueId) != null;
+    }
+
+    public void registerPlayer(Player player, Consumer<PermissionPlayer> consumer) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+
+
+                PermissionPlayer permissionPlayer = getPermissionPlayer(player.getUniqueId());
 
                 if(permissionPlayer == null) {
+                    permissionPlayer = new PermissionPlayer(player.getUniqueId());
+                    permissionPlayer.setName(player.getName());
 
-                    permissionPlayer = new PermissionPlayer()
+                    Map<String, Long> groups = new HashMap<>();
+                    groups.put(groupManager.getDefaultGroup().getIdentifier(), (long) -1);
 
-                    permissionManager.registerPlayer();
+                    permissionPlayer.setGroups(groups);
+                    permissionPlayer.setPermissions(new ArrayList<>());
+                    createPlayer(permissionPlayer);
+
+                    permissionPlayer.setAttachment(player.addAttachment(UltPerms.getInstance()));
                 } else {
-                    players.put(uniqueId, permissionPlayer);
-                    succeed.accept(permissionPlayer);
+                    permissionPlayer.setAttachment(player.addAttachment(UltPerms.getInstance()));
+
+                    if(!permissionPlayer.getName().equalsIgnoreCase(player.getName())) {
+                        permissionPlayer.setName(player.getName());
+                        updatePlayer(permissionPlayer);
+                    }
+
                 }
+
+                permissionPlayers.put(player.getUniqueId(), permissionPlayer);
+                applyPermission(permissionPlayer);
+                consumer.accept(permissionPlayer);
+
             }
         }.runTaskAsynchronously(UltPerms.getInstance());
     }
 
-    public void unregisterPlayer(UUID uniqueId, Consumer<PermissionPlayer> succeed) {
+    private void applyPermission(PermissionPlayer permissionPlayer) {
+        for(String all : permissionPlayer.getAttachment().getPermissions().keySet()) {
+            permissionPlayer.getAttachment().unsetPermission(all);
+        }
 
-        PermissionPlayer permissionPlayer = this.players.get(uniqueId);
-        this.players.remove(uniqueId.toString());
-        succeed.accept(permissionPlayer);
+        for(String perm : permissionPlayer.getPermissions()) {
+            permissionPlayer.getAttachment().setPermission(perm, true);
+        }
+
+        for(String groupIdentifier : permissionPlayer.getGroups().keySet()) {
+            Group group = groupManager.getGroup(groupIdentifier);
+            for(String perm : group.getPermission()) {
+                permissionPlayer.getAttachment().setPermission(perm, true);
+            }
+        }
     }
 
-    //Getting the player by hand without storing it in the cache
-    public void getPermissionPlayer(UUID uniqueId, Consumer<PermissionPlayer> consumer) {
+    public PermissionPlayer getPermissionPlayer(UUID uuid) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            ps = databaseManager.getConnection().prepareStatement("SELECT * FROM player_info WHERE uuid=?");
+            ps.setString(1, uuid.toString());
+            rs = ps.executeQuery();
+            if(rs.next()) {
+                PermissionPlayer permissionPlayer = new PermissionPlayer(UUID.fromString(rs.getString("uuid")));
+
+                permissionPlayer.setName(rs.getString("name"));
+                permissionPlayer.setGroups(gson.fromJson(rs.getString("groups"), groupMapType));
+                permissionPlayer.setPermissions(gson.fromJson(rs.getString("permission"), stringListType));
+                permissionPlayer.setLanguage(rs.getString("language"));
+
+                return permissionPlayer;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return null;
+    }
+
+    public void updatePlayer(PermissionPlayer permissionPlayer) {
         new BukkitRunnable() {
             @Override
             public void run() {
-                consumer.accept(permissionManager.getPlayer(uniqueId));
+                PreparedStatement ps = null;
+
+                try {
+                    ps = databaseManager.getConnection().prepareStatement("UPDATE player_info SET name=?, lower_name=?, permission=?, groups=?, language=? WHERE uuid=?");
+                    ps.setString(1, permissionPlayer.getName());
+                    ps.setString(2, permissionPlayer.getName().toLowerCase());
+                    ps.setString(3, gson.toJson(permissionPlayer.getPermissions()));
+                    ps.setString(4, gson.toJson(permissionPlayer.getGroups()));
+                    ps.setString(5, permissionPlayer.getLanguage());
+                    ps.setString(6, permissionPlayer.getUniqueId().toString());
+                    ps.executeUpdate();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+
             }
         }.runTaskAsynchronously(UltPerms.getInstance());
 
-
     }
 
+    private void createPlayer(PermissionPlayer permissionPlayer) {
+
+        PreparedStatement ps = null;
+
+        try {
+            ps = databaseManager.getConnection().prepareStatement("INSERT INTO player_info (uuid, name, lower_name, permission, groups, language) VALUES (?,?,?,?,?,?)");
+            ps.setString(1, permissionPlayer.getUniqueId().toString());
+            ps.setString(2, permissionPlayer.getName());
+            ps.setString(3, permissionPlayer.getName().toLowerCase());
+            ps.setString(4, gson.toJson(permissionPlayer.getPermissions()));
+            ps.setString(5, gson.toJson(permissionPlayer.getGroups()));
+            ps.setString(6, permissionPlayer.getLanguage());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                ps.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+    }
 
 }
