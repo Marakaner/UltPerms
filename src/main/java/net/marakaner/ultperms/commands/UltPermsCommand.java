@@ -27,68 +27,67 @@ public class UltPermsCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if(!(sender instanceof Player)) return false;
+        if (!(sender instanceof Player)) return false;
 
         Player player = (Player) sender;
 
-        if(args.length == 0) {
+        if (args.length == 0) {
 
             return true;
         }
 
-        if(args[0].equalsIgnoreCase("user")) {
+        if (args[0].equalsIgnoreCase("user")) {
 
             playerManager.getPermissionPlayer(args[1], permissionPlayer -> {
 
-                if(permissionPlayer == null) {
+                if (permissionPlayer == null) {
                     languageManager.sendMessage(player, "utils.player_not_found");
                     return;
                 }
 
 
-                if(args.length == 2) {
+                if (args.length == 2) {
                     printPlayerInfo(player, permissionPlayer);
-                } else if(args.length == 3) {
+                } else if (args.length == 3) {
                     if (args[2].equalsIgnoreCase("groups")) {
                         printPlayerGroups(player, permissionPlayer);
-                    } else if (args[1].equalsIgnoreCase("permission")) {
+                    } else if (args[2].equalsIgnoreCase("permission")) {
                         printPlayerPermission(player, permissionPlayer);
                     }
 
 
-
-                } else if(args.length == 5) {
-                    if(args[3].equalsIgnoreCase("group")) {
+                } else if (args.length == 5) {
+                    if (args[3].equalsIgnoreCase("group")) {
 
                         Group group = groupManager.getGroup(args[4]);
 
-                        if(group == null) {
+                        if (group == null) {
                             languageManager.sendMessage(player, "utils.group_not_found");
                             return;
                         }
 
-                        if(args[2].equalsIgnoreCase("add")) {
+                        if (args[2].equalsIgnoreCase("add")) {
 
-                            if(permissionPlayer.getGroups().containsValue(group.getIdentifier())) {
+                            if (permissionPlayer.getGroups().containsKey(group.getIdentifier())) {
                                 languageManager.sendMessage(player, "command.ultperms.player_have_group");
                                 return;
                             }
 
                             playerManager.addGroup(permissionPlayer.getUniqueId(), group.getIdentifier(), System.currentTimeMillis() + TimeUnit.DAYS.toMillis(3650), finish -> {
-                                if(finish) {
+                                if (finish) {
                                     languageManager.sendMessage(player, "command.ultperms.player_set_group");
                                 }
                             });
 
-                        } else if(args[2].equalsIgnoreCase("remove")) {
+                        } else if (args[2].equalsIgnoreCase("remove")) {
 
-                            if(!permissionPlayer.getGroups().containsValue(group.getIdentifier())) {
+                            if (!permissionPlayer.getGroups().containsKey(group.getIdentifier())) {
                                 languageManager.sendMessage(player, "command.ultperms.player_not_have_group");
                                 return;
                             }
 
                             playerManager.removeGroup(permissionPlayer.getUniqueId(), group.getIdentifier(), finish -> {
-                                if(finish) {
+                                if (finish) {
                                     languageManager.sendMessage(player, "command.ultperms.player_unset_group");
                                 }
                             });
@@ -96,133 +95,89 @@ public class UltPermsCommand implements CommandExecutor {
                         }
 
 
-
-                    } else if(args[3].equalsIgnoreCase("permission")) {
+                    }
+                    else if (args[3].equalsIgnoreCase("permission")) {
 
                         String permission = args[4].toLowerCase();
 
-                        if(args[2].equalsIgnoreCase("add")) {
+                        if (args[2].equalsIgnoreCase("add")) {
 
-                            if(permissionPlayer.hasPermission(permission)) {
+                            if (permissionPlayer.hasPermission(permission)) {
                                 languageManager.sendMessage(player, "command.ultperms.player_have_permission");
                                 return;
                             }
 
                             playerManager.addPermission(permissionPlayer.getUniqueId(), permission, finish -> {
-                                if(finish) languageManager.sendMessage(player, "command.ultperms.player_set_permission");
+                                if (finish)
+                                    languageManager.sendMessage(player, "command.ultperms.player_set_permission");
                             });
 
-                        } else if(args[2].equalsIgnoreCase("remove")) {
+                        } else if (args[2].equalsIgnoreCase("remove")) {
 
-                            if(!permissionPlayer.hasPermission(permission)) {
+                            if (!permissionPlayer.hasPermission(permission)) {
                                 languageManager.sendMessage(player, "command.ultperms.player_not_have_permission");
                                 return;
                             }
 
                             playerManager.removePermission(permissionPlayer.getUniqueId(), permission, finish -> {
-                                if(finish) languageManager.sendMessage(player, "command.ultperms.player_unset_permission");
+                                if (finish)
+                                    languageManager.sendMessage(player, "command.ultperms.player_unset_permission");
                             });
 
                         }
 
                     }
-                } else if(args.length == 6) {
+                }
+                else if (args.length >= 6) {
 
                     Group group = groupManager.getGroup(args[4]);
 
-                    if(group == null) {
+                    if (group == null) {
                         languageManager.sendMessage(player, "utils.group_not_found");
                         return;
                     }
 
-                    if(args[2].equalsIgnoreCase("add")) {
+                    if (args[2].equalsIgnoreCase("add")) {
 
-                        int days, minutes;
+                        long timestamp = System.currentTimeMillis();
 
-                        try {
-                            days = Integer.parseInt(args[5]);
-                            minutes = Integer.parseInt(args[6])
-                        } catch (NumberFormatException e) {
-                            languageManager.sendMessage(player, "utils.wrong_number");
-                            return;
-                        }
+                        for(int i = 5; i < args.length; i++) {
 
-                        if(permissionPlayer.getGroups().containsValue(group.getIdentifier())) {
-                            languageManager.sendMessage(player, "command.ultperms.player_have_group");
-                            return;
-                        }
+                            TimeUnit unit;
+                            int time;
 
-                        playerManager.addGroup(permissionPlayer.getUniqueId(), group.getIdentifier(), System.currentTimeMillis() + TimeUnit.DAYS.toMillis(days) + TimeUnit.MINUTES.toMillis(minutes), finish -> {
-                            if(finish) {
-                                languageManager.sendMessage(player, "command.ultperms.player_set_group");
+                            if(args[i].contains("d")) {
+                                unit = TimeUnit.DAYS;
+                            } else if(args[i].contains("h")) {
+                                unit = TimeUnit.HOURS;
+                            } else if(args[i].contains("m")) {
+                                unit = TimeUnit.MINUTES;
+                            } else if (args[i].contains("s")) {
+                                unit = TimeUnit.SECONDS;
+                            } else {
+                                languageManager.sendMessage(player, "utils.wrong_usage");
+                                return;
                             }
-                        });
 
-                    }
-
-                } else if(args.length == 7) {
-
-                    Group group = groupManager.getGroup(args[4]);
-
-                    if(group == null) {
-                        languageManager.sendMessage(player, "utils.group_not_found");
-                        return;
-                    }
-
-
-                    if(args[2].equalsIgnoreCase("add")) {
-
-                        int days, minutes, seconds;
-
-                        try {
-                            days = Integer.parseInt(args[5]);
-                            minutes = Integer.parseInt(args[6]);
-                            seconds = Integer.parseInt(args[7])
-                        } catch (NumberFormatException e) {
-                            languageManager.sendMessage(player, "utils.wrong_number");
-                            return;
-                        }
-
-                        if(permissionPlayer.getGroups().containsValue(group.getIdentifier())) {
-                            languageManager.sendMessage(player, "command.ultperms.player_have_group");
-                            return;
-                        }
-
-                        playerManager.addGroup(permissionPlayer.getUniqueId(), group.getIdentifier(), System.currentTimeMillis() + TimeUnit.DAYS.toMillis(days) + TimeUnit.MINUTES.toMillis(minutes) + TimeUnit.SECONDS.toMillis(seconds), finish -> {
-                            if(finish) {
-                                languageManager.sendMessage(player, "command.ultperms.player_set_group");
+                            try {
+                                args[i] = args[i].substring(0, args[i].length()-1);
+                                time = Integer.parseInt(args[i]);
+                            } catch (NumberFormatException e) {
+                                languageManager.sendMessage(player, "utils.wrong_number");
+                                return;
                             }
-                        });
 
-                    }
+                            timestamp += unit.toMillis(time);
 
-                } else if(args.length == 8) {
-
-                    Group group = groupManager.getGroup(args[4]);
-
-                    if(group == null) {
-                        languageManager.sendMessage(player, "utils.group_not_found");
-                        return;
-                    }
-
-                    if(args[2].equalsIgnoreCase("add")) {
-
-                        int days;
-
-                        try {
-                            days = Integer.parseInt(args[5]);
-                        } catch (NumberFormatException e) {
-                            languageManager.sendMessage(player, "utils.wrong_number");
-                            return;
                         }
 
-                        if(permissionPlayer.getGroups().containsKey(group.getIdentifier())) {
+                        if (permissionPlayer.getGroups().containsKey(group.getIdentifier())) {
                             languageManager.sendMessage(player, "command.ultperms.player_have_group");
                             return;
                         }
 
-                        playerManager.addGroup(permissionPlayer.getUniqueId(), group.getIdentifier(), System.currentTimeMillis() + TimeUnit.DAYS.toMillis(days), finish -> {
-                            if(finish) {
+                        playerManager.addGroup(permissionPlayer.getUniqueId(), group.getIdentifier(), timestamp, finish -> {
+                            if (finish) {
                                 languageManager.sendMessage(player, "command.ultperms.player_set_group");
                             }
                         });
@@ -234,15 +189,86 @@ public class UltPermsCommand implements CommandExecutor {
             });
 
 
+        }
+        else if (args[0].equalsIgnoreCase("group")) {
+
+            if (args.length == 5) {
+
+                Group group = groupManager.getGroup(args[1]);
+
+                if (group == null) {
+                    languageManager.sendMessage(player, "utils.group_not_found");
+                    return false;
+                }
+
+                if (!args[4].equalsIgnoreCase("permission")) {
+                    languageManager.sendMessage(player, "utils.wrong_usage");
+                    return false;
+                }
 
 
+                String permission = args[4].toLowerCase();
 
-        } else if(args[0].equalsIgnoreCase("group")) {
+                if (args[2].equalsIgnoreCase("add")) {
 
-        } else if(args[0].equalsIgnoreCase("sign"))
+                    if (group.hasPermission(permission)) {
+                        languageManager.sendMessage(player, "command.ultperms.group_have_permission");
+                        return false;
+                    }
+
+                    groupManager.addPermission(group.getIdentifier(), permission);
+                    playerManager.groupUpdated(group);
+                    languageManager.sendMessage(player, "command.ultperms.group_set_permission");
+
+                } else if (args[2].equalsIgnoreCase("remove")) {
+                    if (!group.hasPermission(permission)) {
+                        languageManager.sendMessage(player, "command.ultperms.group_not_have_permission");
+                        return false;
+                    }
+
+                    groupManager.removePermission(group.getIdentifier(), permission);
+                    playerManager.groupUpdated(group);
+                    languageManager.sendMessage(player, "command.ultperms.group_unset_permission");
+                }
 
 
-        return true;
+            }
+            else if (args.length == 3) {
+
+                String group = args[2];
+
+                if(args[1].equalsIgnoreCase("create")) {
+
+                    if(groupManager.getGroup(group) != null) {
+                        languageManager.sendMessage(player, "command.ultperms.group_exist");
+                        return false;
+                    }
+
+                    Group createdGroup = new Group(group);
+                    groupManager.createGroup(createdGroup);
+                    languageManager.sendMessage(player, "command.ultperms.group_create");
+                } else if(args[1].equalsIgnoreCase("remove")) {
+
+                    Group removeGroup = groupManager.getGroup(group);
+
+                    if(removeGroup == null) {
+                        languageManager.sendMessage(player, "command.ultperms.group_not_exist");
+                        return false;
+                    }
+
+                    groupManager.deleteGroup(removeGroup.getIdentifier());
+                    playerManager.groupDeleted(removeGroup);
+                    languageManager.sendMessage(player, "command.ultperms.group_remove");
+                }
+
+            }
+
+        }
+        else if (args[0].equalsIgnoreCase("sign")) {
+
+        }
+
+        return false;
     }
 
     private void printPlayerPermission(Player player, PermissionPlayer permissionPlayer) {

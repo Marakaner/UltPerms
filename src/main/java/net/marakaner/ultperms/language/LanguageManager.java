@@ -5,6 +5,7 @@ import lombok.Getter;
 import net.marakaner.ultperms.document.IDocument;
 import net.marakaner.ultperms.document.gson.JsonDocument;
 import net.marakaner.ultperms.player.PlayerManager;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
@@ -58,16 +59,44 @@ public class LanguageManager {
     private void generateDefaultGermanMessagesConfig(File file) {
         IDocument<JsonDocument> document = new JsonDocument();
 
-        document.append("utils.wrong_usage", "&cDu hast den Befehl falsch eingegeben!");
-        document.append("utils.no_permission", "&cDu hast dafür keine Berechtigungen!");
-        document.append("utils.player_not_found", "§cDieser Spieler konnte nicht gefunden werden!");
+        document.append("utils.wrong_usage", "%prefix%&cDu hast den Befehl falsch eingegeben.");
+        document.append("utils.no_permission", "%prefix%&cDu hast den Befehl falsch eingegeben.");
+        document.append("utils.player_not_found", "%prefix%&cDu hast den Befehl falsch eingegeben.");
+        document.append("utils.group_not_found", "%prefix%&cDu hast den Befehl falsch eingegeben.");
+        document.append("utils.wrong_number", "%prefix%&cDu hast den Befehl falsch eingegeben.");
 
-        document.append("command.rank.output", "&7Du hast den Rang %group_color%%group_name% noch für &e%group_days% Tage");
+        document.append("command.rank.output", "%prefix%&7Du hast den Rang %group_color%%group_name% &7für &e%group_time_day% verbleibende Tage.");
 
 
-        document.append("command.ultperms.helpmap.first", "&5UltPerms &8- &7Hilfe");
-        document.append("command.ultperms.helpmap.second", "&a/ultperms user [Name] &7- &7Zeige dir Informationen über einen Spieler an.");
-        document.append("command.ultperms.helpmap.third", "&a/ultperms user [Name]");
+        document.append("commad.ultperms.player_info.first", "&7Spielerinfo von %group_color%%player_name%");
+        document.append("commad.ultperms.player_info.second", "&7Gruppen:");
+        document.append("commad.ultperms.player_info.third", "&7Permission:");
+
+        document.append("command.ultperms.player_have_group", "%prefix%&cDieser Spieler hat diese Gruppe bereits.");
+        document.append("command.ultperms.player_not_have_group", "%prefix%&c&cDieser Spieler hat diese Gruppe nicht.");
+
+        document.append("command.ultperms.player_set_group", "%prefix%&aDu hast dem Spieler die Gruppe hinzugefügt.");
+        document.append("command.ultperms.player_unset_group", "%prefix%&aDu hast dem Spieler die Gruppe entfernt.");
+
+        document.append("command.ultperms.player_have_permission", "%prefix%&cDieser Spieler hat bereits diese Berechtigung.");
+        document.append("command.ultperms.player_not_have_permission", "%prefix%&cDieser Spieler hat dieser Berechtigung nicht.");
+
+        document.append("command.ultperms.player_set_permission", "%prefix%&aDu hast dem Spieler diese Berechtigung hinzugefügt.");
+        document.append("command.ultperms.player_unset_permission", "%prefix%&aDu hast dem Spieler diese Berechtigung entfernt.");
+
+        document.append("command.ultperms.group_have_permission", "%prefix%&cDieser Gruppe hat diese Berechtigung bereits.");
+        document.append("command.ultperms.group_not_have_permission", "%prefix%&cDiese Gruppe hat dieser Berechtigung nicht.");
+
+        document.append("command.ultperms.group_set_permission", "%prefix%&aDu hast der Gruppe die Berechtigung hinzugefügt.");
+        document.append("command.ultperms.group_unset_permission", "%prefix%&aDu hast der Gruppe die Berechtigung entfernt.");
+
+        document.append("command.ultperms.group_create", "%prefix%&aDu hast eine neue Gruppe erstellt. Bitte editiere nun die Informationen in der Config.");
+        document.append("command.ultperms.group_remove", "%prefix%&aDu hast diese Gruppe gelöscht!");
+
+        document.append("command.ultperms.group_exist", "%prefix%&cDiese Gruppe existiert bereits.");
+        document.append("command.ultperms.group_not_exist", "%prefix%&cDiese Gruppe existiert nicht.");
+
+
 
         document.write(file);
     }
@@ -105,27 +134,30 @@ public class LanguageManager {
     }
 
     public void getAutoReplacement(UUID uniqueId, Consumer<HashMap<String, String>> replacements) {
+
         playerManager.getPermissionPlayer(uniqueId, permissionPlayer -> {
             playerManager.getHighestPermissionGroup(uniqueId, group -> {
-                playerManager.getRemainingGroupTime(uniqueId, group.getIdentifier(), remainingTime -> {
 
-                    long days = TimeUnit.MILLISECONDS.toDays(remainingTime);
-                    long minutes = TimeUnit.MILLISECONDS.toMinutes(remainingTime - TimeUnit.DAYS.toMillis(days));
-                    long seconds = TimeUnit.MINUTES.toSeconds(remainingTime - TimeUnit.DAYS.toMillis(days) - TimeUnit.MINUTES.toMillis(minutes));
+                long remainingTime = permissionPlayer.getGroups().get(group.getIdentifier()) - System.currentTimeMillis();
 
-                    replacements.accept(new ReplacementBuilder()
-                            .setGroupName(group.getDisplayName())
-                            .setGroupColor(group.getColor())
-                            .setGroupTime(remainingTime)
-                            .setGroupTimeDays(days)
-                            .setGroupTimeMinutes(minutes)
-                            .setGroupTimeSeconds(seconds)
-                            .setGroupTabPrefix(group.getTabPrefix())
-                            .setGroupChatPrefix(group.getChatPrefix())
-                            .setPlayerName(permissionPlayer.getName())
-                            .build());
+                long days = TimeUnit.MILLISECONDS.toDays(remainingTime);
+                long minutes = TimeUnit.MILLISECONDS.toMinutes(remainingTime - TimeUnit.DAYS.toMillis(days));
+                long seconds = TimeUnit.MINUTES.toSeconds(remainingTime - TimeUnit.DAYS.toMillis(days) - TimeUnit.MINUTES.toMillis(minutes));
 
-                });
+                ReplacementBuilder replacementBuilder = new ReplacementBuilder()
+                        .setGroupName(group.getDisplayName())
+                        .setGroupColor(group.getColor())
+                        .setGroupTime(remainingTime)
+                        .setGroupTimeDays(days)
+                        .setGroupTimeMinutes(minutes)
+                        .setGroupTimeSeconds(seconds)
+                        .setGroupTabPrefix(group.getTabPrefix())
+                        .setGroupChatPrefix(group.getChatPrefix())
+                        .setPlayerName(permissionPlayer.getName())
+                        .setPrefix(getPrefix());
+
+                replacements.accept(replacementBuilder.build());
+
             });
         });
     }

@@ -68,6 +68,16 @@ public class ReplacementBuilder {
         return this;
     }
 
+    public ReplacementBuilder setPrefix(String prefix) {
+        this.replacements.put("%prefix%", prefix);
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return replacements.get("%prefix%");
+    }
+
     public HashMap<String, String> build() {
         return this.replacements;
     }

@@ -7,4 +7,6 @@ description: This is the test project for PlayLegend.net
 website: marakaner.net
 
 commands:
+  ultperms:
+  rank:
   test:

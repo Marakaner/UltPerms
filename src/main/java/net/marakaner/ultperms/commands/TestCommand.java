@@ -3,6 +3,9 @@ package net.marakaner.ultperms.commands;
 import net.marakaner.ultperms.UltPerms;
 import net.marakaner.ultperms.player.PermissionPlayer;
 import org.bukkit.Bukkit;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -17,19 +20,12 @@ public class TestCommand implements CommandExecutor {
 
         Player player = (Player) sender;
 
-        if(args.length == 0) {
+        Block block = player.getTargetBlockExact(5);
+        BlockState blockState = block.getState();
 
-            UltPerms.getInstance().getPlayerManager().addGroup(player.getUniqueId(), "admin", System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(300), aBoolean -> {
-                Bukkit.broadcastMessage("FINISHED");
-            });
-        } else if(args.length == 1) {
-
-            UltPerms.getInstance().getPlayerManager().getPermissionPlayer(player.getUniqueId(), permissionPlayer -> {
-                for(String all : permissionPlayer.getAttachment().getPermissions().keySet()) {
-                    player.sendMessage(all);
-                }
-            });
-
+        if(blockState instanceof Sign) {
+            Sign sign = (Sign) blockState;
+            UltPerms.getInstance().getSignManager().createSign(sign, player.getUniqueId());
         }
 
         return true;

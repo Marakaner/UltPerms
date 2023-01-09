@@ -1,10 +1,12 @@
 package net.marakaner.ultperms.group;
 
+import com.google.common.collect.Lists;
 import com.google.gson.annotations.Expose;
 import lombok.*;
 import org.bukkit.ChatColor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Getter
@@ -32,5 +34,26 @@ public class Group {
 
     public List<String> getPermission() {
         return new ArrayList<>(permission);
+    }
+
+    public Group(String name) {
+        this.identifier = name.toLowerCase();
+        this.displayName = name;
+        this.color = ChatColor.GRAY;
+        this.tabPrefix = "&7" + name + " | ";
+        this.chatPrefix = "&7" + name + " | ";
+        this.defaultGroup = false;
+        this.tabPriority = 99;
+        this.priority = 0;
+        this.permission = Lists.newArrayList();
+    }
+
+    public boolean hasPermission(String permission) {
+        for(String perm : this.permission) {
+            if(perm.equalsIgnoreCase(permission)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -19,7 +19,9 @@ public class JoinListener implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         event.setJoinMessage(null);
         playerManager.registerPlayer(event.getPlayer(), permissionPlayer -> {
-            Bukkit.broadcastMessage("§eThe player " + playerManager.getHighestPermissionGroup(event.getPlayer().getUniqueId()).getColor() + event.getPlayer().getName() + " §ejoined!");
+            playerManager.getHighestPermissionGroup(event.getPlayer().getUniqueId(), group -> {
+                Bukkit.broadcastMessage("§eThe player " + group.getColor() + event.getPlayer().getName() + " §ejoined!");
+            });
         });
     }
 

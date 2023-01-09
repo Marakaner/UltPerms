@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.lang.reflect.Type;
-import java.security.Permission;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -60,14 +59,16 @@ public class PlayerManager {
 
     public void getHighestPermissionGroup(UUID uniqueId, Consumer<Group> groupConsumer) {
         getPermissionPlayer(uniqueId, permissionPlayer -> {
-            Group lowestGroup = null;
+            Group highestGroup = null;
 
             for(String identifier : permissionPlayer.getGroups().keySet()) {
                 Group group = groupManager.getGroup(identifier);
-                if(lowestGroup == null || lowestGroup.getPriority() < group.getPriority()) {
-                    lowestGroup = group;
+                if(highestGroup == null || highestGroup.getPriority() < group.getPriority()) {
+                    highestGroup = group;
                 }
             }
+
+            groupConsumer.accept(highestGroup);
         });
     }
 
@@ -104,23 +105,17 @@ public class PlayerManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                PermissionPlayer permissionPlayer;
-                boolean online = isOnline(uniqueId);
+                getPermissionPlayer(uniqueId, permissionPlayer -> {
 
-                if(online) {
-                    permissionPlayer = getCachedPlayer(uniqueId);
-                } else {
-                    permissionPlayer = getPermissionPlayer(uniqueId);
-                }
+                    Map<String, Long> groups = permissionPlayer.getGroups();
+                    groups.put(groupIdentifier, timestamp);
+                    permissionPlayer.setGroups(groups);
+                    updatePlayer(permissionPlayer);
 
-                Map<String, Long> groups = permissionPlayer.getGroups();
-                groups.put(groupIdentifier, timestamp);
-                permissionPlayer.setGroups(groups);
-                updatePlayer(permissionPlayer);
+                    if(isInCache(uniqueId)) applyPermission(permissionPlayer);
 
-                if(online) applyPermission(permissionPlayer);
-
-                consumer.accept(true);
+                    consumer.accept(true);
+                });
             }
         }.runTaskAsynchronously(UltPerms.getInstance());
     }
@@ -129,23 +124,17 @@ public class PlayerManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                PermissionPlayer permissionPlayer;
-                boolean online = isOnline(uniqueId);
+                getPermissionPlayer(uniqueId, permissionPlayer -> {
 
-                if(online) {
-                    permissionPlayer = getCachedPlayer(uniqueId);
-                } else {
-                    permissionPlayer = getPermissionPlayer(uniqueId);
-                }
+                    Map<String, Long> groups = permissionPlayer.getGroups();
+                    groups.remove(groupIdentifier);
+                    permissionPlayer.setGroups(groups);
+                    updatePlayer(permissionPlayer);
 
-                Map<String, Long> groups = permissionPlayer.getGroups();
-                groups.remove(groupIdentifier);
-                permissionPlayer.setGroups(groups);
-                updatePlayer(permissionPlayer);
+                    if(isInCache(uniqueId)) applyPermission(permissionPlayer);
 
-                if(online) applyPermission(permissionPlayer);
-
-                consumer.accept(true);
+                    consumer.accept(true);
+                });
             }
         }.runTaskAsynchronously(UltPerms.getInstance());
     }
@@ -154,23 +143,17 @@ public class PlayerManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                PermissionPlayer permissionPlayer;
-                boolean online = isOnline(uniqueId);
+                getPermissionPlayer(uniqueId, permissionPlayer -> {
 
-                if(online) {
-                    permissionPlayer = getCachedPlayer(uniqueId);
-                } else {
-                    permissionPlayer = getPermissionPlayer(uniqueId);
-                }
+                    List<String> playerPermissions = permissionPlayer.getPermissions();
+                    playerPermissions.add(permission.toLowerCase());
+                    permissionPlayer.setPermissions(playerPermissions);
+                    updatePlayer(permissionPlayer);
 
-                List<String> playerPermissions = permissionPlayer.getPermissions();
-                playerPermissions.add(permission.toLowerCase());
-                permissionPlayer.setPermissions(playerPermissions);
-                updatePlayer(permissionPlayer);
+                    if(isInCache(uniqueId)) applyPermission(permissionPlayer);
 
-                if(online) applyPermission(permissionPlayer);
-
-                consumer.accept(true);
+                    consumer.accept(true);
+                });
             }
         }.runTaskAsynchronously(UltPerms.getInstance());
     }
@@ -179,28 +162,22 @@ public class PlayerManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                PermissionPlayer permissionPlayer;
-                boolean online = isOnline(uniqueId);
+                getPermissionPlayer(uniqueId, permissionPlayer -> {
 
-                if(online) {
-                    permissionPlayer = getCachedPlayer(uniqueId);
-                } else {
-                    permissionPlayer = getPermissionPlayer(uniqueId);
-                }
+                    List<String> playerPermissions = permissionPlayer.getPermissions();
+                    playerPermissions.remove(permission.toLowerCase());
+                    permissionPlayer.setPermissions(playerPermissions);
+                    updatePlayer(permissionPlayer);
 
-                List<String> playerPermissions = permissionPlayer.getPermissions();
-                playerPermissions.remove(permission.toLowerCase());
-                permissionPlayer.setPermissions(playerPermissions);
-                updatePlayer(permissionPlayer);
+                    if(isInCache(uniqueId)) applyPermission(permissionPlayer);
 
-                if(online) applyPermission(permissionPlayer);
-
-                consumer.accept(true);
+                    consumer.accept(true);
+                });
             }
         }.runTaskAsynchronously(UltPerms.getInstance());
     }
 
-    private PermissionPlayer getCachedPlayer(UUID uniqueId) {
+    public PermissionPlayer getCachedPlayer(UUID uniqueId) {
         return permissionPlayers.getOrDefault(uniqueId, null);
     }
 
@@ -210,14 +187,25 @@ public class PlayerManager {
                 return all;
             }
         }
+        return null;
     }
 
-    public boolean isOnline(UUID uniqueId) {
-        return Bukkit.getPlayer(uniqueId) != null;
+    public boolean isInCache(UUID uniqueId) {
+        for(PermissionPlayer player : this.permissionPlayers.values()) {
+            if(player.getUniqueId().equals(uniqueId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    public boolean isOnline(String name) {
-        return Bukkit.getPlayer(name) != null;
+    public boolean isInCache(String name) {
+        for (PermissionPlayer player : this.permissionPlayers.values()) {
+            if (player.getName().equalsIgnoreCase(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void registerPlayer(Player player, Consumer<PermissionPlayer> consumer) {
@@ -250,6 +238,22 @@ public class PlayerManager {
         });
     }
 
+    public void groupUpdated(Group group) {
+        for(PermissionPlayer player : this.permissionPlayers.values()) {
+            if(player.getGroups().containsKey(group.getIdentifier())) {
+                applyPermission(player);
+            }
+        }
+    }
+
+    public void groupDeleted(Group group) {
+        for(PermissionPlayer player : this.permissionPlayers.values()) {
+            if (player.getGroups().containsKey(group.getIdentifier())) {
+                removeGroup(player.getUniqueId(), group.getIdentifier(), succeed -> {});
+            }
+        }
+    }
+
     private void applyPermission(PermissionPlayer permissionPlayer) {
         for(String all : permissionPlayer.getAttachment().getPermissions().keySet()) {
             permissionPlayer.getAttachment().unsetPermission(all);
@@ -269,10 +273,9 @@ public class PlayerManager {
 
     public void getPermissionPlayer(UUID uuid, Consumer<PermissionPlayer> playerConsumer) {
 
-        if(isOnline(uuid)) {
+        if(isInCache(uuid)) {
             playerConsumer.accept(getCachedPlayer(uuid));
         } else {
-
             PreparedStatement ps = null;
             ResultSet rs = null;
 
@@ -289,18 +292,26 @@ public class PlayerManager {
                     permissionPlayer.setLanguage(rs.getString("language"));
 
                     playerConsumer.accept(permissionPlayer);
+                } else {
+                    playerConsumer.accept(null);
                 }
             } catch (SQLException e) {
                 throw new RuntimeException(e);
+            } finally {
+                try {
+                    ps.close();
+                    rs.close();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }
 
     public void getPermissionPlayer(String name, Consumer<PermissionPlayer> playerConsumer) {
-        if(isOnline(name)) {
+        if(isInCache(name)) {
             playerConsumer.accept(getCachedPlayer(name));
         } else {
-
             PreparedStatement ps = null;
             ResultSet rs = null;
 
@@ -317,9 +328,18 @@ public class PlayerManager {
                     permissionPlayer.setLanguage(rs.getString("language"));
 
                     playerConsumer.accept(permissionPlayer);
+                } else {
+                    playerConsumer.accept(null);
                 }
             } catch (SQLException e) {
                 throw new RuntimeException(e);
+            } finally {
+                try {
+                    ps.close();
+                    rs.close();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }

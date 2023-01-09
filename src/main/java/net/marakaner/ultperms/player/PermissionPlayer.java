@@ -17,7 +17,7 @@ public class PermissionPlayer {
     private String name;
     private List<String> permissions;
     private Map<String, Long> groups;
-    private String language = "en-US";
+    private String language = "de-DE";
     private PermissionAttachment attachment;
 
     public PermissionPlayer(UUID uniqueId) {
