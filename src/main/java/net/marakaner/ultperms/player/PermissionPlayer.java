@@ -39,4 +39,14 @@ public class PermissionPlayer {
     public String getLanguage() {
         return language;
     }
+
+    public boolean hasPermission(String permission) {
+
+        for(String perm : this.permissions) {
+            if(perm.equalsIgnoreCase(permission)) return true;
+        }
+
+        return false;
+    }
+
 }

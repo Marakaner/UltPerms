@@ -1,14 +1,12 @@
 package net.marakaner.ultperms.language;
 
 import com.google.common.reflect.TypeToken;
-import net.marakaner.ultperms.UltPerms;
+import lombok.Getter;
 import net.marakaner.ultperms.document.IDocument;
 import net.marakaner.ultperms.document.gson.JsonDocument;
 import net.marakaner.ultperms.player.PlayerManager;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
-import sun.nio.ch.FileKey;
 
 import java.io.File;
 import java.lang.reflect.Type;
@@ -23,6 +21,9 @@ public class LanguageManager {
 
     private IDocument languageConfig;
     private Map<String, IDocument> messages = new HashMap<>();
+
+    @Getter
+    private String prefix;
 
     public LanguageManager(PlayerManager playerManager) {
         this.playerManager = playerManager;
@@ -55,7 +56,7 @@ public class LanguageManager {
     }
 
     private void generateDefaultGermanMessagesConfig(File file) {
-        IDocument document = new JsonDocument();
+        IDocument<JsonDocument> document = new JsonDocument();
 
         document.append("utils.wrong_usage", "&cDu hast den Befehl falsch eingegeben!");
         document.append("utils.no_permission", "&cDu hast dafür keine Berechtigungen!");
@@ -67,8 +68,6 @@ public class LanguageManager {
         document.append("command.ultperms.helpmap.first", "&5UltPerms &8- &7Hilfe");
         document.append("command.ultperms.helpmap.second", "&a/ultperms user [Name] &7- &7Zeige dir Informationen über einen Spieler an.");
         document.append("command.ultperms.helpmap.third", "&a/ultperms user [Name]");
-
-        document.append("")
 
         document.write(file);
     }
@@ -140,6 +139,8 @@ public class LanguageManager {
         } else {
             this.languageConfig = JsonDocument.newDocument(file.toPath());
         }
+
+        this.prefix = ChatColor.translateAlternateColorCodes('&', this.languageConfig.getString("prefix"));
 
     }
 

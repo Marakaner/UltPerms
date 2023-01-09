@@ -221,41 +221,33 @@ public class PlayerManager {
     }
 
     public void registerPlayer(Player player, Consumer<PermissionPlayer> consumer) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
+        getPermissionPlayer(player.getUniqueId(), permissionPlayer -> {
+            if (permissionPlayer == null) {
+                permissionPlayer = new PermissionPlayer(player.getUniqueId());
+                permissionPlayer.setName(player.getName());
 
+                Map<String, Long> groups = new HashMap<>();
+                groups.put(groupManager.getDefaultGroup().getIdentifier(), (long) -1);
 
-                PermissionPlayer permissionPlayer = getPermissionPlayer(player.getUniqueId());
+                permissionPlayer.setGroups(groups);
+                permissionPlayer.setPermissions(new ArrayList<>());
+                createPlayer(permissionPlayer);
 
-                if(permissionPlayer == null) {
-                    permissionPlayer = new PermissionPlayer(player.getUniqueId());
+                permissionPlayer.setAttachment(player.addAttachment(UltPerms.getInstance()));
+            } else {
+                permissionPlayer.setAttachment(player.addAttachment(UltPerms.getInstance()));
+
+                if (!permissionPlayer.getName().equalsIgnoreCase(player.getName())) {
                     permissionPlayer.setName(player.getName());
-
-                    Map<String, Long> groups = new HashMap<>();
-                    groups.put(groupManager.getDefaultGroup().getIdentifier(), (long) -1);
-
-                    permissionPlayer.setGroups(groups);
-                    permissionPlayer.setPermissions(new ArrayList<>());
-                    createPlayer(permissionPlayer);
-
-                    permissionPlayer.setAttachment(player.addAttachment(UltPerms.getInstance()));
-                } else {
-                    permissionPlayer.setAttachment(player.addAttachment(UltPerms.getInstance()));
-
-                    if(!permissionPlayer.getName().equalsIgnoreCase(player.getName())) {
-                        permissionPlayer.setName(player.getName());
-                        updatePlayer(permissionPlayer);
-                    }
-
+                    updatePlayer(permissionPlayer);
                 }
 
-                permissionPlayers.put(player.getUniqueId(), permissionPlayer);
-                applyPermission(permissionPlayer);
-                consumer.accept(permissionPlayer);
-
             }
-        }.runTaskAsynchronously(UltPerms.getInstance());
+
+            permissionPlayers.put(player.getUniqueId(), permissionPlayer);
+            applyPermission(permissionPlayer);
+            consumer.accept(permissionPlayer);
+        });
     }
 
     private void applyPermission(PermissionPlayer permissionPlayer) {
