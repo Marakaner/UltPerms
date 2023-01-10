@@ -2,6 +2,7 @@ package net.marakaner.ultperms.language;
 
 import com.google.common.reflect.TypeToken;
 import lombok.Getter;
+import net.marakaner.ultperms.UltPerms;
 import net.marakaner.ultperms.document.IDocument;
 import net.marakaner.ultperms.document.gson.JsonDocument;
 import net.marakaner.ultperms.player.PlayerManager;
@@ -22,9 +23,6 @@ public class LanguageManager {
 
     private IDocument languageConfig;
     private Map<String, IDocument> messages = new HashMap<>();
-
-    @Getter
-    private String prefix;
 
     public LanguageManager(PlayerManager playerManager) {
         this.playerManager = playerManager;
@@ -133,7 +131,7 @@ public class LanguageManager {
         });
     }
 
-    public void getAutoReplacement(UUID uniqueId, Consumer<HashMap<String, String>> replacements) {
+    private void getAutoReplacement(UUID uniqueId, Consumer<HashMap<String, String>> replacements) {
 
         playerManager.getPermissionPlayer(uniqueId, permissionPlayer -> {
             playerManager.getHighestPermissionGroup(uniqueId, group -> {
@@ -154,7 +152,7 @@ public class LanguageManager {
                         .setGroupTabPrefix(group.getTabPrefix())
                         .setGroupChatPrefix(group.getChatPrefix())
                         .setPlayerName(permissionPlayer.getName())
-                        .setPrefix(getPrefix());
+                        .setPrefix(UltPerms.getInstance().getPrefix());
 
                 replacements.accept(replacementBuilder.build());
 
@@ -172,15 +170,11 @@ public class LanguageManager {
             this.languageConfig = JsonDocument.newDocument(file.toPath());
         }
 
-        this.prefix = ChatColor.translateAlternateColorCodes('&', this.languageConfig.getString("prefix"));
-
     }
 
     private void generateDefaultConfig(File file) {
 
         IDocument document = new JsonDocument();
-
-        document.append("prefix", "&7[&5UltPerms&5]");
 
         document.append("languages", Arrays.asList(new Language("en-US", "American English"), new Language("de-DE", "German")));
 
