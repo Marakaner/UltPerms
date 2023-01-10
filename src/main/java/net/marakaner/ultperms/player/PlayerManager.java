@@ -46,7 +46,7 @@ public class PlayerManager {
         PreparedStatement ps = null;
 
         try {
-            ps = databaseManager.getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS player_info(uuid VARCHAR(100), name VARCHAR(100), lower_name VARCHAR(100), permission MEDIUMTEXT, groups MEDIUMTEXT, language VARCHAR(100))");
+            ps = databaseManager.getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS player_info(uuid VARCHAR(100) primary key, name VARCHAR(100), lower_name VARCHAR(100), permission MEDIUMTEXT, groups MEDIUMTEXT, language VARCHAR(100))");
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -193,12 +193,7 @@ public class PlayerManager {
     }
 
     public boolean isInCache(UUID uniqueId) {
-        for(PermissionPlayer player : this.permissionPlayers.values()) {
-            if(player.getUniqueId().equals(uniqueId)) {
-                return true;
-            }
-        }
-        return false;
+        return this.permissionPlayers.containsKey(uniqueId);
     }
 
     public boolean isInCache(String name) {
@@ -312,39 +307,44 @@ public class PlayerManager {
     }
 
     public void getPermissionPlayer(String name, Consumer<PermissionPlayer> playerConsumer) {
-        if(isInCache(name)) {
-            playerConsumer.accept(getCachedPlayer(name));
-        } else {
-            PreparedStatement ps = null;
-            ResultSet rs = null;
-
-            try {
-                ps = databaseManager.getConnection().prepareStatement("SELECT * FROM player_info WHERE lower_name=?");
-                ps.setString(1, name.toLowerCase());
-                rs = ps.executeQuery();
-                if (rs.next()) {
-                    PermissionPlayer permissionPlayer = new PermissionPlayer(UUID.fromString(rs.getString("uuid")));
-
-                    permissionPlayer.setName(rs.getString("name"));
-                    permissionPlayer.setGroups(gson.fromJson(rs.getString("groups"), groupMapType));
-                    permissionPlayer.setPermissions(gson.fromJson(rs.getString("permission"), stringListType));
-                    permissionPlayer.setLanguage(rs.getString("language"));
-
-                    playerConsumer.accept(permissionPlayer);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if(isInCache(name)) {
+                    playerConsumer.accept(getCachedPlayer(name));
                 } else {
-                    playerConsumer.accept(null);
-                }
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            } finally {
-                try {
-                    ps.close();
-                    rs.close();
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
+                    PreparedStatement ps = null;
+                    ResultSet rs = null;
+
+                    try {
+                        ps = databaseManager.getConnection().prepareStatement("SELECT * FROM player_info WHERE lower_name=?");
+                        ps.setString(1, name.toLowerCase());
+                        rs = ps.executeQuery();
+                        if (rs.next()) {
+                            PermissionPlayer permissionPlayer = new PermissionPlayer(UUID.fromString(rs.getString("uuid")));
+
+                            permissionPlayer.setName(rs.getString("name"));
+                            permissionPlayer.setGroups(gson.fromJson(rs.getString("groups"), groupMapType));
+                            permissionPlayer.setPermissions(gson.fromJson(rs.getString("permission"), stringListType));
+                            permissionPlayer.setLanguage(rs.getString("language"));
+
+                            playerConsumer.accept(permissionPlayer);
+                        } else {
+                            playerConsumer.accept(null);
+                        }
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        try {
+                            ps.close();
+                            rs.close();
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
                 }
             }
-        }
+        }.runTaskAsynchronously(UltPerms.getInstance());
     }
 
     private void updatePlayer(PermissionPlayer permissionPlayer) {

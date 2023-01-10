@@ -1,4 +1,4 @@
-package net.marakaner.ultperms.commands;
+package net.marakaner.ultperms.command;
 
 import net.marakaner.ultperms.group.Group;
 import net.marakaner.ultperms.group.GroupManager;

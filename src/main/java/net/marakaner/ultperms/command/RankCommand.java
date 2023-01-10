@@ -1,10 +1,8 @@
-package net.marakaner.ultperms.commands;
+package net.marakaner.ultperms.command;
 
 import net.marakaner.ultperms.group.GroupManager;
 import net.marakaner.ultperms.language.LanguageManager;
-import net.marakaner.ultperms.language.ReplacementBuilder;
 import net.marakaner.ultperms.player.PlayerManager;
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;

@@ -1,4 +1,4 @@
-package net.marakaner.ultperms.commands;
+package net.marakaner.ultperms.command;
 
 import net.marakaner.ultperms.language.LanguageManager;
 import net.marakaner.ultperms.player.PlayerManager;

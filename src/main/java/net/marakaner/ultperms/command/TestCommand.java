@@ -1,4 +1,4 @@
-package net.marakaner.ultperms.commands;
+package net.marakaner.ultperms.command;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
