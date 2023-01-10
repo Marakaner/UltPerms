@@ -31,7 +31,15 @@ public class RankCommand implements CommandExecutor {
         Player player = (Player) sender;
 
         if(args.length == 0) {
-            languageManager.sendMessage(player, "command.rank.output");
+            playerManager.getPermissionPlayer(player.getUniqueId(), permissionPlayer -> {
+                playerManager.getHighestPermissionGroup(player.getUniqueId(), group -> {
+                    if(permissionPlayer.getGroups().get(group.getIdentifier()) == -1) {
+                        languageManager.sendMessage(player.getPlayer(), "command.rank.output_permanent");
+                    } else {
+                        languageManager.sendMessage(player.getPlayer(), "command.rank.output");
+                    }
+                });
+            });
         } else {
             languageManager.sendMessage(player, "utils.wrong_usage");
         }

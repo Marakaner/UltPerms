@@ -4,6 +4,8 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import net.marakaner.ultperms.UltPerms;
+import net.marakaner.ultperms.group.GroupManager;
 import org.bukkit.permissions.PermissionAttachment;
 
 import java.util.*;
@@ -13,10 +15,12 @@ import java.util.*;
 @Getter
 public class PermissionPlayer {
 
+    private final GroupManager groupManager = UltPerms.getInstance().getGroupManager();
+
     private UUID uniqueId;
     private String name;
     private List<String> permissions;
-    private Map<String, Long> groups;
+    private Map<String, Long> groups = new HashMap<>();
     private String language = "de-DE";
     private PermissionAttachment attachment;
 
@@ -29,7 +33,15 @@ public class PermissionPlayer {
     }
 
     public Map<String, Long> getGroups() {
-        return new HashMap<>(groups);
+        Map<String, Long> tempGroups = new HashMap<>(groups);
+        if(groups.isEmpty()) {
+            tempGroups.put(groupManager.getDefaultGroup().getIdentifier(), (long) -1);
+        }
+        return tempGroups;
+    }
+
+    protected Map<String, Long> getDirectGroups() {
+        return this.groups;
     }
 
     public UUID getUniqueId() {

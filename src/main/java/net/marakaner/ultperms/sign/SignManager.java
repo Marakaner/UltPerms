@@ -1,9 +1,11 @@
 package net.marakaner.ultperms.sign;
 
 import com.google.gson.Gson;
+import lombok.Getter;
 import net.marakaner.ultperms.UltPerms;
 import net.marakaner.ultperms.database.DatabaseManager;
 import net.marakaner.ultperms.document.IDocument;
+import net.marakaner.ultperms.language.LanguageManager;
 import net.marakaner.ultperms.language.ReplacementBuilder;
 import net.marakaner.ultperms.player.PlayerManager;
 import net.marakaner.ultperms.utils.SimpleLocation;
@@ -31,12 +33,15 @@ public class SignManager {
     private final IDocument generalConfig;
     private final PlayerManager playerManager;
     private final DatabaseManager databaseManager;
+    private final LanguageManager languageManager;
 
+    @Getter
     private final List<UltSign> cachedSigns = new ArrayList<>();
 
-    public SignManager(PlayerManager playerManager, DatabaseManager databaseManager, IDocument generalConfig, Consumer<Boolean> finised) {
+    public SignManager(PlayerManager playerManager, DatabaseManager databaseManager, LanguageManager languageManager, IDocument generalConfig, Consumer<Boolean> finised) {
         this.playerManager = playerManager;
         this.databaseManager = databaseManager;
+        this.languageManager = languageManager;
         this.generalConfig = generalConfig;
         new BukkitRunnable() {
             @Override
@@ -63,15 +68,7 @@ public class SignManager {
                 sign.setLocation(gson.fromJson(rs.getString("location"), SimpleLocation.class));
                 sign.setUser(UUID.fromString(rs.getString("user")));
 
-                Block block = Bukkit.getWorld(sign.getLocation().getWorld()).getBlockAt(sign.getLocation().getX(), sign.getLocation().getY(), sign.getLocation().getZ());
-                if(!(block.getState() instanceof Sign)) {
-                    deleteSign(sign);
-                    return;
-                }
-
-                Sign bukkitSign = (Sign) block.getState();
-                sign.setSign(bukkitSign);
-                this.cachedSigns.add(sign);
+                loadSign(sign);
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -86,12 +83,34 @@ public class SignManager {
 
     }
 
+    private void loadSign(UltSign sign) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                Block block = Bukkit.getWorld(sign.getLocation().getWorld()).getBlockAt(sign.getLocation().getX(), sign.getLocation().getY(), sign.getLocation().getZ());
+
+                Bukkit.broadcastMessage(block.getType().toString());
+                Bukkit.broadcastMessage("X: " + sign.getLocation().getX() + ", Y: " + sign.getLocation().getY() + ", Z: " + sign.getLocation().getZ());
+
+                if(!(block.getState() instanceof Sign)) {
+                    deleteSign(sign);
+                    return;
+                }
+
+                Sign bukkitSign = (Sign) block.getState();
+                sign.setSign(bukkitSign);
+                cachedSigns.add(sign);
+                updateSign(sign);
+            }
+        }.runTask(UltPerms.getInstance());
+    }
+
     private void saveSigns() {
         new BukkitRunnable() {
             @Override
             public void run() {
                 for(UltSign sign : cachedSigns) {
-                    dataUpdateSign(sign);
+                    saveSign(sign);
                 }
             }
         }.runTaskAsynchronously(UltPerms.getInstance());
@@ -152,6 +171,7 @@ public class SignManager {
 
         this.cachedSigns.add(ultSign);
         updateSign(ultSign);
+        createSign(ultSign);
     }
 
     public UltSign getSignAtLocation(Location location) {
@@ -188,20 +208,25 @@ public class SignManager {
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 } finally {
-                    ps.close();
+                    try {
+                        ps.close();
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }.runTaskAsynchronously(UltPerms.getInstance());
     }
 
-    private void updateSign(UltSign ultSign) {
-        getAutoReplacement(ultSign.getUser(), replacements -> {
+    public void updateSign(UltSign ultSign) {
+        languageManager.getAutoReplacement(ultSign.getUser(), replacements -> {
             Sign sign = ultSign.getSign();
 
             sign.setLine(0, translateLign(generalConfig.getString("sign.layout.first"), replacements));
             sign.setLine(1, translateLign(generalConfig.getString("sign.layout.second"), replacements));
             sign.setLine(2, translateLign(generalConfig.getString("sign.layout.third"), replacements));
             sign.setLine(3, translateLign(generalConfig.getString("sign.layout.fourth"), replacements));
+            sign.update();
         });
     }
 
@@ -213,34 +238,6 @@ public class SignManager {
         line = ChatColor.translateAlternateColorCodes('&', line);
 
         return line;
-    }
-
-    private void getAutoReplacement(UUID uniqueId, Consumer<HashMap<String, String>> replacements) {
-        playerManager.getPermissionPlayer(uniqueId, permissionPlayer -> {
-            playerManager.getHighestPermissionGroup(uniqueId, group -> {
-
-                long remainingTime = permissionPlayer.getGroups().get(group.getIdentifier()) - System.currentTimeMillis();
-
-                long days = TimeUnit.MILLISECONDS.toDays(remainingTime);
-                long minutes = TimeUnit.MILLISECONDS.toMinutes(remainingTime - TimeUnit.DAYS.toMillis(days));
-                long seconds = TimeUnit.MINUTES.toSeconds(remainingTime - TimeUnit.DAYS.toMillis(days) - TimeUnit.MINUTES.toMillis(minutes));
-
-                ReplacementBuilder replacementBuilder = new ReplacementBuilder()
-                        .setGroupName(group.getDisplayName())
-                        .setGroupColor(group.getColor())
-                        .setGroupTime(remainingTime)
-                        .setGroupTimeDays(days)
-                        .setGroupTimeMinutes(minutes)
-                        .setGroupTimeSeconds(seconds)
-                        .setGroupTabPrefix(group.getTabPrefix())
-                        .setGroupChatPrefix(group.getChatPrefix())
-                        .setPlayerName(permissionPlayer.getName())
-                        .setPrefix(UltPerms.getInstance().getPrefix());
-
-                replacements.accept(replacementBuilder.build());
-
-            });
-        });
     }
 
     private void createTables() {

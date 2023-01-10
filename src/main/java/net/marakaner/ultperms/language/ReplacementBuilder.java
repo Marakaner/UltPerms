@@ -53,18 +53,23 @@ public class ReplacementBuilder {
         return this;
     }
 
-    public ReplacementBuilder setGroupTimeDays(long timeDays) {
-        this.replacements.put("%group_time_day%", String.valueOf(timeDays));
+    public ReplacementBuilder setGroupTimeDays(String timeDays) {
+        this.replacements.put("%group_time_day%", timeDays);
         return this;
     }
 
-    public ReplacementBuilder setGroupTimeMinutes(long timeMinutes) {
-        this.replacements.put("%group_time_min%", String.valueOf(timeMinutes));
+    public ReplacementBuilder setGroupTimeHours(String timeHours) {
+        this.replacements.put("%group_time_hour%", timeHours);
         return this;
     }
 
-    public ReplacementBuilder setGroupTimeSeconds(long timeSeconds) {
-        this.replacements.put("%group_time_sec%", String.valueOf(timeSeconds));
+    public ReplacementBuilder setGroupTimeMinutes(String timeMinutes) {
+        this.replacements.put("%group_time_min%", timeMinutes);
+        return this;
+    }
+
+    public ReplacementBuilder setGroupTimeSeconds(String timeSeconds) {
+        this.replacements.put("%group_time_sec%", timeSeconds);
         return this;
     }
 

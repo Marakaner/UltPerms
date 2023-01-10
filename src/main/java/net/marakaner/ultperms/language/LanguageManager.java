@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.lang.reflect.Type;
+import java.sql.Time;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -64,11 +65,12 @@ public class LanguageManager {
         document.append("utils.wrong_number", "%prefix%&cDu hast den Befehl falsch eingegeben.");
 
         document.append("command.rank.output", "%prefix%&7Du hast den Rang %group_color%%group_name% &7für &e%group_time_day% verbleibende Tage.");
+        document.append("command.rank.output_permanent", "%prefix%&7Du hast den Rang %group_color%%group_name%.");
 
 
-        document.append("commad.ultperms.player_info.first", "&7Spielerinfo von %group_color%%player_name%");
-        document.append("commad.ultperms.player_info.second", "&7Gruppen:");
-        document.append("commad.ultperms.player_info.third", "&7Permission:");
+        document.append("command.ultperms.player_info.first", "&7Spielerinfo von %group_color%%player_name%");
+        document.append("command.ultperms.player_info.second", "&7Gruppen:");
+        document.append("command.ultperms.player_info.third", "&7Permission:");
 
         document.append("command.ultperms.player_have_group", "%prefix%&cDieser Spieler hat diese Gruppe bereits.");
         document.append("command.ultperms.player_not_have_group", "%prefix%&c&cDieser Spieler hat diese Gruppe nicht.");
@@ -94,7 +96,13 @@ public class LanguageManager {
         document.append("command.ultperms.group_exist", "%prefix%&cDiese Gruppe existiert bereits.");
         document.append("command.ultperms.group_not_exist", "%prefix%&cDiese Gruppe existiert nicht.");
 
+        document.append("command.ultsign.no_sign", "&cDu musst auf ein Schild gucken!");
+        document.append("command.ultsign.sign_exist", "&cDieses Schild wurde bereits zugeordnet!");
+        document.append("command.ultsign.sign_not_exist", "&cDieser Schild existier nicht.");
+        document.append("command.ultsign.sign_created", "&aDu hast erfolgreich das Schild erstellt.");
+        document.append("command.ultsign.sign_removed", "&aDu hast erfolgreich das Schild entfernt.");
 
+        messages.put("de-DE", document);
 
         document.write(file);
     }
@@ -131,28 +139,41 @@ public class LanguageManager {
         });
     }
 
-    private void getAutoReplacement(UUID uniqueId, Consumer<HashMap<String, String>> replacements) {
+    public void getAutoReplacement(UUID uniqueId, Consumer<HashMap<String, String>> replacements) {
 
         playerManager.getPermissionPlayer(uniqueId, permissionPlayer -> {
             playerManager.getHighestPermissionGroup(uniqueId, group -> {
 
-                long remainingTime = permissionPlayer.getGroups().get(group.getIdentifier()) - System.currentTimeMillis();
-
-                long days = TimeUnit.MILLISECONDS.toDays(remainingTime);
-                long minutes = TimeUnit.MILLISECONDS.toMinutes(remainingTime - TimeUnit.DAYS.toMillis(days));
-                long seconds = TimeUnit.MINUTES.toSeconds(remainingTime - TimeUnit.DAYS.toMillis(days) - TimeUnit.MINUTES.toMillis(minutes));
+                long remainingTime = permissionPlayer.getGroups().get(group.getIdentifier());
 
                 ReplacementBuilder replacementBuilder = new ReplacementBuilder()
                         .setGroupName(group.getDisplayName())
                         .setGroupColor(group.getColor())
                         .setGroupTime(remainingTime)
-                        .setGroupTimeDays(days)
-                        .setGroupTimeMinutes(minutes)
-                        .setGroupTimeSeconds(seconds)
                         .setGroupTabPrefix(group.getTabPrefix())
                         .setGroupChatPrefix(group.getChatPrefix())
                         .setPlayerName(permissionPlayer.getName())
                         .setPrefix(UltPerms.getInstance().getPrefix());
+
+                if(remainingTime == -1) {
+                    replacementBuilder.setGroupTimeDays("Infinite")
+                            .setGroupTimeHours("Infinite")
+                            .setGroupTimeMinutes("Infinite")
+                            .setGroupTimeSeconds("Infinite");
+                } else {
+
+                    remainingTime = remainingTime - System.currentTimeMillis();
+
+                    long days = TimeUnit.MILLISECONDS.toDays(remainingTime);
+                    long hours = TimeUnit.MILLISECONDS.toHours(remainingTime - TimeUnit.DAYS.toMillis(days));
+                    long minutes = TimeUnit.MILLISECONDS.toMinutes(remainingTime - TimeUnit.DAYS.toMillis(days) - TimeUnit.HOURS.toMillis(hours));
+                    long seconds = TimeUnit.MILLISECONDS.toSeconds(remainingTime - TimeUnit.DAYS.toMillis(days) - TimeUnit.HOURS.toMillis(hours) - TimeUnit.MINUTES.toMillis(minutes));
+
+                    replacementBuilder.setGroupTimeDays(String.valueOf(days))
+                            .setGroupTimeHours(String.valueOf(hours))
+                            .setGroupTimeMinutes(String.valueOf(minutes))
+                            .setGroupTimeSeconds(String.valueOf(seconds));
+                }
 
                 replacements.accept(replacementBuilder.build());
 

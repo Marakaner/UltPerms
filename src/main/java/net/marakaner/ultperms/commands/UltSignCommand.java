@@ -59,6 +59,8 @@ public class UltSignCommand implements CommandExecutor {
                 signManager.removeSign(sign);
                 languageManager.sendMessage(player, "command.ultsign.sign_removed");
 
+            } else {
+                languageManager.sendMessage(player, "utils.wrong_usage");
             }
         } else if (args.length == 2) {
 
@@ -90,7 +92,11 @@ public class UltSignCommand implements CommandExecutor {
 
                 });
 
+            } else {
+                languageManager.sendMessage(player, "utils.wrong_usage");
             }
+        } else {
+            languageManager.sendMessage(player, "utils.wrong_usage");
         }
 
         return true;

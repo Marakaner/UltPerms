@@ -27,7 +27,7 @@ public class SimpleLocation {
         this.world = location.getWorld().getName();
         this.x = location.getBlockX();
         this.y = location.getBlockY();
-        this.z = location.getBlockY();
+        this.z = location.getBlockZ();
     }
 
 

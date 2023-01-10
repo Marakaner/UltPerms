@@ -53,8 +53,9 @@ public class UltPermsCommand implements CommandExecutor {
                         printPlayerGroups(player, permissionPlayer);
                     } else if (args[2].equalsIgnoreCase("permission")) {
                         printPlayerPermission(player, permissionPlayer);
+                    } else {
+                        languageManager.sendMessage(player, "utils.wrong_usage");
                     }
-
 
                 } else if (args.length == 5) {
                     if (args[3].equalsIgnoreCase("group")) {
@@ -73,7 +74,7 @@ public class UltPermsCommand implements CommandExecutor {
                                 return;
                             }
 
-                            playerManager.addGroup(permissionPlayer.getUniqueId(), group.getIdentifier(), System.currentTimeMillis() + TimeUnit.DAYS.toMillis(3650), finish -> {
+                            playerManager.addGroup(permissionPlayer.getUniqueId(), group.getIdentifier(), (long) -1, finish -> {
                                 if (finish) {
                                     languageManager.sendMessage(player, "command.ultperms.player_set_group");
                                 }
@@ -92,11 +93,12 @@ public class UltPermsCommand implements CommandExecutor {
                                 }
                             });
 
+                        } else {
+                            languageManager.sendMessage(player, "utils.wrong_usage");
                         }
 
 
-                    }
-                    else if (args[3].equalsIgnoreCase("permission")) {
+                    } else if (args[3].equalsIgnoreCase("permission")) {
 
                         String permission = args[4].toLowerCase();
 
@@ -124,11 +126,12 @@ public class UltPermsCommand implements CommandExecutor {
                                     languageManager.sendMessage(player, "command.ultperms.player_unset_permission");
                             });
 
+                        } else {
+                            languageManager.sendMessage(player, "utils.wrong_usage");
                         }
 
                     }
-                }
-                else if (args.length >= 6) {
+                } else if (args.length >= 6) {
 
                     Group group = groupManager.getGroup(args[4]);
 
@@ -182,8 +185,11 @@ public class UltPermsCommand implements CommandExecutor {
                             }
                         });
 
+                    } else {
+                        languageManager.sendMessage(player, "utils.wrong_usage");
                     }
-
+                } else {
+                    languageManager.sendMessage(player, "utils.wrong_usage");
                 }
 
             });
@@ -229,11 +235,10 @@ public class UltPermsCommand implements CommandExecutor {
                     groupManager.removePermission(group.getIdentifier(), permission);
                     playerManager.groupUpdated(group);
                     languageManager.sendMessage(player, "command.ultperms.group_unset_permission");
+                } else {
+                    languageManager.sendMessage(player, "utils.wrong_usage");
                 }
-
-
-            }
-            else if (args.length == 3) {
+            } else if (args.length == 3) {
 
                 String group = args[2];
 
@@ -259,13 +264,15 @@ public class UltPermsCommand implements CommandExecutor {
                     groupManager.deleteGroup(removeGroup.getIdentifier());
                     playerManager.groupDeleted(removeGroup);
                     languageManager.sendMessage(player, "command.ultperms.group_remove");
+                } else {
+                    languageManager.sendMessage(player, "utils.wrong_usage");
                 }
-
+            } else {
+                languageManager.sendMessage(player, "utils.wrong_usage");
             }
 
-        }
-        else if (args[0].equalsIgnoreCase("sign")) {
-
+        } else {
+            languageManager.sendMessage(player, "utils.wrong_usage");
         }
 
         return false;
@@ -308,12 +315,19 @@ public class UltPermsCommand implements CommandExecutor {
                     player.sendMessage(second);
 
                     for(String group : permissionPlayer.getGroups().keySet()) {
-                        player.sendMessage("&7- " + group + " : " + TimeUnit.MILLISECONDS.toDays(permissionPlayer.getGroups().get(group)));
+                        long remainingTime = permissionPlayer.getGroups().get(group);
+                        Group currentGroup = groupManager.getGroup(group);
+
+                        if(remainingTime == -1) {
+                            player.sendMessage("§7- " + currentGroup.getColor() + currentGroup.getDisplayName() + " §7: §ePermanent");
+                        } else {
+                            player.sendMessage("§7- §e" + group + " §7: §e" + TimeUnit.MILLISECONDS.toDays(permissionPlayer.getGroups().get(group)));
+                        }
                     }
 
                     player.sendMessage(third);
                     for(String permission : permissionPlayer.getPermissions()) {
-                        player.sendMessage("&7- " + permission);
+                        player.sendMessage("§7- §e" + permission);
                     }
                 });
             });

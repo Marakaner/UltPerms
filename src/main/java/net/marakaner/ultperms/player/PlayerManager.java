@@ -2,6 +2,7 @@ package net.marakaner.ultperms.player;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import lombok.Getter;
 import net.marakaner.ultperms.UltPerms;
 import net.marakaner.ultperms.database.DatabaseManager;
 import net.marakaner.ultperms.group.Group;
@@ -26,6 +27,7 @@ public class PlayerManager {
     private final DatabaseManager databaseManager;
     private final GroupManager groupManager;
 
+    @Getter
     private final Map<UUID, PermissionPlayer> permissionPlayers = new HashMap<>();
 
     public PlayerManager(DatabaseManager databaseManager, GroupManager groupManager, Consumer<Boolean> finished) {
@@ -107,7 +109,7 @@ public class PlayerManager {
             public void run() {
                 getPermissionPlayer(uniqueId, permissionPlayer -> {
 
-                    Map<String, Long> groups = permissionPlayer.getGroups();
+                    Map<String, Long> groups = permissionPlayer.getDirectGroups();
                     groups.put(groupIdentifier, timestamp);
                     permissionPlayer.setGroups(groups);
                     updatePlayer(permissionPlayer);
@@ -126,7 +128,7 @@ public class PlayerManager {
             public void run() {
                 getPermissionPlayer(uniqueId, permissionPlayer -> {
 
-                    Map<String, Long> groups = permissionPlayer.getGroups();
+                    Map<String, Long> groups = permissionPlayer.getDirectGroups();
                     groups.remove(groupIdentifier);
                     permissionPlayer.setGroups(groups);
                     updatePlayer(permissionPlayer);
@@ -214,10 +216,7 @@ public class PlayerManager {
                 permissionPlayer = new PermissionPlayer(player.getUniqueId());
                 permissionPlayer.setName(player.getName());
 
-                Map<String, Long> groups = new HashMap<>();
-                groups.put(groupManager.getDefaultGroup().getIdentifier(), (long) -1);
-
-                permissionPlayer.setGroups(groups);
+                permissionPlayer.setGroups(new HashMap<>());
                 permissionPlayer.setPermissions(new ArrayList<>());
                 createPlayer(permissionPlayer);
 
@@ -238,9 +237,13 @@ public class PlayerManager {
         });
     }
 
+    public void unregisterPlayer(Player player) {
+        this.permissionPlayers.remove(player.getUniqueId());
+    }
+
     public void groupUpdated(Group group) {
         for(PermissionPlayer player : this.permissionPlayers.values()) {
-            if(player.getGroups().containsKey(group.getIdentifier())) {
+            if(player.getDirectGroups().containsKey(group.getIdentifier())) {
                 applyPermission(player);
             }
         }
@@ -248,7 +251,7 @@ public class PlayerManager {
 
     public void groupDeleted(Group group) {
         for(PermissionPlayer player : this.permissionPlayers.values()) {
-            if (player.getGroups().containsKey(group.getIdentifier())) {
+            if (player.getDirectGroups().containsKey(group.getIdentifier())) {
                 removeGroup(player.getUniqueId(), group.getIdentifier(), succeed -> {});
             }
         }
@@ -263,7 +266,7 @@ public class PlayerManager {
             permissionPlayer.getAttachment().setPermission(perm, true);
         }
 
-        for(String groupIdentifier : permissionPlayer.getGroups().keySet()) {
+        for(String groupIdentifier : permissionPlayer.getDirectGroups().keySet()) {
             Group group = groupManager.getGroup(groupIdentifier);
             for(String perm : group.getPermission()) {
                 permissionPlayer.getAttachment().setPermission(perm, true);
@@ -355,7 +358,7 @@ public class PlayerManager {
                     ps.setString(1, permissionPlayer.getName());
                     ps.setString(2, permissionPlayer.getName().toLowerCase());
                     ps.setString(3, gson.toJson(permissionPlayer.getPermissions()));
-                    ps.setString(4, gson.toJson(permissionPlayer.getGroups()));
+                    ps.setString(4, gson.toJson(permissionPlayer.getDirectGroups()));
                     ps.setString(5, permissionPlayer.getLanguage());
                     ps.setString(6, permissionPlayer.getUniqueId().toString());
                     ps.executeUpdate();
@@ -378,7 +381,7 @@ public class PlayerManager {
             ps.setString(2, permissionPlayer.getName());
             ps.setString(3, permissionPlayer.getName().toLowerCase());
             ps.setString(4, gson.toJson(permissionPlayer.getPermissions()));
-            ps.setString(5, gson.toJson(permissionPlayer.getGroups()));
+            ps.setString(5, gson.toJson(permissionPlayer.getDirectGroups()));
             ps.setString(6, permissionPlayer.getLanguage());
             ps.executeUpdate();
         } catch (SQLException e) {

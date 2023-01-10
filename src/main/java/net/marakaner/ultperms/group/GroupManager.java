@@ -232,8 +232,8 @@ public class GroupManager {
 
     private void generateDefaultGroups() {
 
-        Group adminGroup = new Group("admin", "&4Admin", ChatColor.DARK_RED, "&4A &7| &4", "&4Admin &7| &4", false, 0, 100, Arrays.asList("*"));
-        Group defaultGroup = new Group("default", "&7Default", ChatColor.GRAY, "&7", "&7", true, 100, 0, new ArrayList<>());
+        Group adminGroup = new Group("admin", "Admin", ChatColor.DARK_RED, "&4A &7| &4", "&4Admin &7| &4", false, 0, 100, Arrays.asList("*"));
+        Group defaultGroup = new Group("default", "Default", ChatColor.GRAY, "&7", "&7", true, 100, 0, new ArrayList<>());
 
         registerNewGroup(adminGroup.getIdentifier(), adminGroup.getPermission());
         registerNewGroup(defaultGroup.getIdentifier(), defaultGroup.getPermission());
