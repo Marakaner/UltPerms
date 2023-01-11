@@ -2,11 +2,13 @@ package net.marakaner.ultperms.group;
 
 import com.google.common.collect.Lists;
 import com.google.gson.annotations.Expose;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.ChatColor;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Getter

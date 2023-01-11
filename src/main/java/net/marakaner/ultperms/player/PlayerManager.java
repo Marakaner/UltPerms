@@ -7,7 +7,6 @@ import net.marakaner.ultperms.UltPerms;
 import net.marakaner.ultperms.database.DatabaseManager;
 import net.marakaner.ultperms.group.Group;
 import net.marakaner.ultperms.group.GroupManager;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
